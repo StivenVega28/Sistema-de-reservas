@@ -8,8 +8,11 @@
  *  - Tabla de propinas acumuladas por mesero.
  */
 
+import { requireAuth } from '../auth.js';
 import { Storage, DB_KEYS } from '../utils/storage.js';
 import { calcularSubtotalPedido } from '../data/models.js';
+
+requireAuth(['admin']);
 
 const cardsContainer = document.getElementById('admin-cards');
 const tablaPlatos = document.getElementById('tabla-platos');

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iniciar sesión | Sistema de Reservas</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="login-body">
+  <main class="login-wrapper">
+    <form id="form-login" class="login-card" autocomplete="off">
+      <h1 class="login-card__title">Solo Sena</h1>
+      <p class="login-card__subtitle">Inicia sesión para continuar</p>
+
+      <div class="form-group">
+        <label class="form-label" for="input-usuario">Usuario</label>
+        <input
+          type="text"
+          id="input-usuario"
+          class="form-control"
+          placeholder="admin"
+          maxlength="20"
+          pattern="[a-zA-Z0-9_]{4,20}"
+          title="Solo letras, números y guion bajo (4-20 caracteres)"
+          required
+        />
+        <small class="form-hint">Sin espacios ni caracteres especiales (4-20 caracteres).</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="input-password">Contraseña</label>
+        <div class="input-password-wrapper">
+          <input
+            type="password"
+            id="input-password"
+            class="form-control"
+            placeholder="••••••••"
+            minlength="8"
+            required
+          />
+          <button type="button" class="btn-toggle-password" id="btn-toggle-password" aria-label="Mostrar contraseña">
+            👁
+          </button>
+        </div>
+        <small class="form-hint">Mínimo 8 caracteres, con mayúscula, minúscula y número.</small>
+      </div>
+
+      <p id="login-error" class="login-error" role="alert"></p>
+
+      <button type="submit" class="btn btn--block" id="btn-login">Ingresar</button>
+
+      <div class="login-demo">
+        <strong>Usuarios demo:</strong>
+        <ul>
+          <li>admin / Admin123</li>
+          <li>mesero / Mesero123</li>
+          <li>cocina / Cocina123</li>
+          <li>despacho / Despacho123</li>
+        </ul>
+      </div>
+    </form>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="js/views/login.js"></script>
+</body>
+</html>

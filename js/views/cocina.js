@@ -5,8 +5,11 @@
  * automáticamente a la vista Despacho.
  */
 
+import { requireAuth } from '../auth.js';
 import { Storage, DB_KEYS } from '../utils/storage.js';
 import { showToast } from '../app.js';
+
+requireAuth(['admin', 'cocina']);
 
 const contenedor = document.getElementById('pedidos-cocina');
 

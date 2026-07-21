@@ -10,6 +10,8 @@ const DB_KEYS = {
   MESEROS: 'rr_meseros',
   PLATOS: 'rr_platos',
   PEDIDOS: 'rr_pedidos',
+  USUARIOS: 'rr_usuarios',
+  SESION: 'rr_sesion',
 };
 
 const Storage = {

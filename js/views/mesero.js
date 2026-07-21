@@ -8,9 +8,12 @@
  *    luego verá la vista Cocina.
  */
 
+import { requireAuth } from '../auth.js';
 import { Storage, DB_KEYS } from '../utils/storage.js';
 import { crearPedido, calcularSubtotalPedido } from '../data/models.js';
 import { showToast } from '../app.js';
+
+requireAuth(['admin', 'mesero']);
 
 const mesasGrid = document.getElementById('mesas-grid');
 const selectMesero = document.getElementById('select-mesero');

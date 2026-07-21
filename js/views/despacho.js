@@ -6,8 +6,11 @@
  *  - La mesa vuelve a estado "libre" para nuevas reservas.
  */
 
+import { requireAuth } from '../auth.js';
 import { Storage, DB_KEYS } from '../utils/storage.js';
 import { showToast } from '../app.js';
+
+requireAuth(['admin', 'mesero', 'despacho']);
 
 const contenedor = document.getElementById('pedidos-despacho');
 
