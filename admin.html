@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin | Sistema de Reservas</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="navbar">
+      <div class="navbar__brand">🍽️ Restaurante RR</div>
+      <nav class="navbar__nav">
+        <a href="index.html" class="navbar__link" data-page="index">Mesero</a>
+        <a href="cocina.html" class="navbar__link" data-page="cocina">Cocina</a>
+        <a href="despacho.html" class="navbar__link" data-page="despacho">Despacho</a>
+        <a href="admin.html" class="navbar__link" data-page="admin" style="background:var(--color-primary);color:#fff;">Admin</a>
+      </nav>
+    </header>
+
+  <main class="container">
+    <h1 class="page-title">Panel administrativo</h1>
+
+    <div class="grid" id="admin-cards"></div>
+
+    <h2 class="page-title" style="font-size:1.1rem;">Platos vendidos</h2>
+    <div class="table-wrapper" style="margin-bottom:1.5rem;">
+      <table>
+        <thead>
+          <tr><th>Plato</th><th>Cantidad vendida</th><th>Total generado</th></tr>
+        </thead>
+        <tbody id="tabla-platos"></tbody>
+      </table>
+    </div>
+
+    <h2 class="page-title" style="font-size:1.1rem;">Propinas por mesero</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Mesero</th><th>N° pedidos entregados</th><th>Propinas acumuladas</th></tr>
+        </thead>
+        <tbody id="tabla-propinas"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/views/admin.js"></script>
+</body>
+</html>

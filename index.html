@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mesero | Sistema de Reservas</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="navbar">
+      <div class="navbar__brand">🍽️ Restaurante RR</div>
+      <nav class="navbar__nav">
+        <a href="index.html" class="navbar__link" data-page="index">Mesero</a>
+        <a href="cocina.html" class="navbar__link" data-page="cocina">Cocina</a>
+        <a href="despacho.html" class="navbar__link" data-page="despacho">Despacho</a>
+        <a href="admin.html" class="navbar__link" data-page="admin">Admin</a>
+      </nav>
+    </header>
+
+  <main class="container">
+    <h1 class="page-title">Reserva de mesas y pedidos</h1>
+
+    <section class="two-col">
+      <div>
+        <h2 class="page-title" style="font-size:1.1rem;">Mesas</h2>
+        <div id="mesas-grid" class="mesas-grid"></div>
+      </div>
+
+      <div>
+        <h2 class="page-title" style="font-size:1.1rem;">Nuevo pedido</h2>
+        <form id="form-pedido">
+          <div class="form-group">
+            <label class="form-label" for="select-mesero">Mesero</label>
+            <select id="select-mesero" class="form-control" required></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Platos</label>
+            <div id="platos-list" class="platos-list"></div>
+          </div>
+
+          <div class="form-group">
+            <strong>Subtotal: </strong>
+            <span id="subtotal-preview">$0</span>
+          </div>
+
+          <button type="submit" class="btn btn--block" id="btn-crear-pedido" disabled>
+            Confirmar pedido
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/views/mesero.js"></script>
+</body>
+</html>
