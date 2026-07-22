@@ -41,6 +41,11 @@ function aplicarPermisosNavbar(rol) {
   });
 }
 
+function capitalizarPrimeraLetra(texto) {
+  if (!texto) return '';
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 function mostrarSesion() {
   const sesion = getSesion();
   const navbar = document.querySelector('.navbar');
@@ -52,7 +57,7 @@ function mostrarSesion() {
   const sessionDiv = document.createElement('div');
   sessionDiv.className = 'navbar__session';
   sessionDiv.innerHTML = `
-  <span class="navbar__usuario">${sesion.usuario}</span>
+  <span class="navbar__usuario">${capitalizarPrimeraLetra(sesion.usuario)}</span>
   <button id="btn-logout" class="btn btn--sm btn--danger">Cerrar sesión</button>
 `;
   navbar.appendChild(sessionDiv);
