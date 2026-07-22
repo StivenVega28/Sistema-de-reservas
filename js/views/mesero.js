@@ -36,7 +36,7 @@ function renderMesas() {
       (m) => `
       <div class="mesa mesa--${m.estado} ${mesaSeleccionada === m.id ? 'mesa--selected' : ''}"
            data-id="${m.id}" role="button" tabindex="0">
-        Mesa ${m.numero}<br /><small>${m.capacidad} pax</small>
+        Mesa ${m.numero}<br /><small>${m.capacidad} Personas</small>
       </div>`
     )
     .join('');
