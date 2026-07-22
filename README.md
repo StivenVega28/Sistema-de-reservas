@@ -40,8 +40,8 @@ restaurante-reservas/
 | `rr_pedidos`  | Pedidos con items, estado, propina           | Mesero (crea), Cocina (listo), Despacho (entregado) |
 
 ### Ciclo de un pedido
-1. **Mesero**: selecciona mesa libre + mesero + platos → crea pedido `pendiente`, mesa pasa a `ocupada`.
-2. **Cocina**: ve pedidos `pendiente`/`cocina`, los marca `listo`.
+1. **Mesero**: selecciona mesa libre + mesero + platos → crea pedido `preparacion`, mesa pasa a `ocupada`.
+2. **Cocina**: ve pedidos `preparacion`, los marca `listo`.
 3. **Despacho**: ve pedidos `listo`, registra propina y marca `entregado` → mesa vuelve a `libre`.
 4. **Admin**: consolida métricas en tiempo real (recalcula sobre pedidos `entregado`).
 

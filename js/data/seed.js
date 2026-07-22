@@ -55,6 +55,7 @@ export async function seedDatabase() {
   if (!Storage.get(DB_KEYS.MESEROS)) Storage.set(DB_KEYS.MESEROS, meserosSeed);
   if (!Storage.get(DB_KEYS.PLATOS)) Storage.set(DB_KEYS.PLATOS, platosSeed);
   if (!Storage.get(DB_KEYS.PEDIDOS)) Storage.set(DB_KEYS.PEDIDOS, []);
+
   if (!Storage.get(DB_KEYS.USUARIOS)) {
     const usuarios = await Promise.all(USUARIOS_DEMO.map(crearUsuarioSeguro));
     Storage.set(DB_KEYS.USUARIOS, usuarios);

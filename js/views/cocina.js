@@ -1,17 +1,18 @@
 /**
  * cocina.js
- * Vista Cocina: muestra los pedidos en estado "pendiente" o "cocina".
- * El cocinero puede marcar un pedido como "listo", lo que lo envía
- * automáticamente a la vista Despacho.
+ * Vista Cocina: muestra pedidos en estado "preparacion" y "listo".
+ * El cocinero puede marcar un pedido como "listo", quedando disponible
+ * para despacho.
  */
 
-import { requireAuth } from '../auth.js';
 import { Storage, DB_KEYS } from '../utils/storage.js';
 import { showToast } from '../app.js';
+import { requireAuth } from '../auth.js';
 
 requireAuth(['admin', 'cocina']);
 
-const contenedor = document.getElementById('pedidos-cocina');
+const contenedorPreparacion = document.getElementById('pedidos-preparacion');
+const contenedorListos = document.getElementById('pedidos-listos');
 
 function obtenerNombreMesa(mesaId) {
   const mesas = Storage.get(DB_KEYS.MESAS) || [];
@@ -23,16 +24,13 @@ function formatoHora(iso) {
   return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 }
 
-function render() {
-  const pedidos = Storage.get(DB_KEYS.PEDIDOS) || [];
-  const pendientes = pedidos.filter((p) => p.estado === 'pendiente' || p.estado === 'cocina');
-
-  if (pendientes.length === 0) {
-    contenedor.innerHTML = '<p class="empty-state">No hay pedidos pendientes por cocinar 🎉</p>';
+function renderBloque(pedidos, contenedor, tituloVacio) {
+  if (pedidos.length === 0) {
+    contenedor.innerHTML = `<p class="empty-state">${tituloVacio}</p>`;
     return;
   }
 
-  contenedor.innerHTML = pendientes
+  contenedor.innerHTML = pedidos
     .map(
       (p) => `
       <div class="pedido-card" data-id="${p.id}">
@@ -40,27 +38,43 @@ function render() {
           <span class="pedido-card__mesa">${obtenerNombreMesa(p.mesaId)}</span>
           <span class="pedido-card__hora">${formatoHora(p.fechaCreacion)}</span>
         </div>
-        <span class="badge badge--pendiente">${p.estado}</span>
+        <span class="badge ${p.estado === 'listo' ? 'badge--listo' : 'badge--preparacion'}">${p.estado}</span>
         <ul class="pedido-card__items">
           ${p.items.map((it) => `<li>${it.cantidad} × ${it.nombre}</li>`).join('')}
         </ul>
-        <button class="btn btn--secondary btn--block" data-action="listo" data-id="${p.id}">
-          Marcar como listo
-        </button>
+        ${p.estado === 'preparacion' ? `
+          <button class="btn btn--secondary btn--block" data-action="listo" data-id="${p.id}">
+            Marcar como listo
+          </button>
+        ` : ''}
       </div>`
     )
     .join('');
 }
 
-contenedor.addEventListener('click', (e) => {
+function render() {
+  const pedidos = Storage.get(DB_KEYS.PEDIDOS) || [];
+  const enPreparacion = pedidos.filter((p) => p.estado === 'preparacion');
+  const listos = pedidos.filter((p) => p.estado === 'listo');
+
+  renderBloque(enPreparacion, contenedorPreparacion, 'No hay pedidos en preparación 🎉');
+  renderBloque(listos, contenedorListos, 'No hay pedidos listos');
+}
+
+function actualizarEstadoPedido(id, estado) {
+  const pedidos = Storage.get(DB_KEYS.PEDIDOS) || [];
+  const pedido = pedidos.find((p) => p.id === id);
+  if (!pedido) return;
+  pedido.estado = estado;
+  Storage.set(DB_KEYS.PEDIDOS, pedidos);
+}
+
+contenedorPreparacion.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-action="listo"]');
   if (!btn) return;
   const id = Number(btn.dataset.id);
-  const pedidos = Storage.get(DB_KEYS.PEDIDOS) || [];
-  const pedido = pedidos.find((p) => p.id === id);
-  pedido.estado = 'listo';
-  Storage.set(DB_KEYS.PEDIDOS, pedidos);
-  showToast('Pedido marcado como listo, enviado a despacho');
+  actualizarEstadoPedido(id, 'listo');
+  showToast('Pedido marcado como listo, disponible para despacho');
   render();
 });
 

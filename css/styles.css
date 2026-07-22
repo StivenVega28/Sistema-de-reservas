@@ -362,7 +362,7 @@ a {
   background: var(--color-text-light);
 }
 
-.badge--pendiente {
+.badge--preparacion {
   background: var(--color-danger);
 }
 
@@ -600,4 +600,16 @@ th {
   .login-body {
     background-attachment: scroll;
   }
+}
+
+.mesa--ocupada-box {
+  cursor: pointer;
+  border-style: dashed;
+  opacity: 0.9;
+}
+
+.mesa--ocupada-box {
+  cursor: pointer;
+  border-style: dashed;
+  opacity: 0.9;
 }

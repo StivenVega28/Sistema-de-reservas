@@ -14,7 +14,7 @@ await seedDatabase();
 
 const ACCESOS_POR_ROL = {
   admin: ['index', 'cocina', 'despacho', 'admin'],
-  mesero: ['index'],
+  mesero: ['index', 'despacho'],
   cocina: ['cocina'],
   despacho: ['despacho'],
 };
