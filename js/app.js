@@ -52,7 +52,7 @@ function mostrarSesion() {
   const sessionDiv = document.createElement('div');
   sessionDiv.className = 'navbar__session';
   sessionDiv.innerHTML = `
-  <span class="navbar__user">${sesion.usuario}</span>
+  <span class="navbar__usuario">${sesion.usuario}</span>
   <button id="btn-logout" class="btn btn--sm btn--danger">Cerrar sesión</button>
 `;
   navbar.appendChild(sessionDiv);

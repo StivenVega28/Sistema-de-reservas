@@ -22,6 +22,7 @@ const btnCrearPedido = document.getElementById('btn-crear-pedido');
 const formPedido = document.getElementById('form-pedido');
 const tituloPedido = document.getElementById('titulo-pedido');
 const btnLiberarMesa = document.getElementById('btn-liberar-mesa');
+const fechaReservaInput = document.getElementById('fecha-reserva');
 
 let mesaSeleccionada = null;
 let pedidoActualId = null;
@@ -30,6 +31,23 @@ let modoEdicion = false;
 
 function formatoMoneda(valor) {
   return valor.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+}
+
+function establecerMinFecha() {
+  if (!fechaReservaInput) return;
+  
+  const ahora = new Date();
+  // Agregar 5 minutos de margen para evitar que el usuario seleccione una hora que acaba de pasar
+  ahora.setMinutes(ahora.getMinutes() + 5);
+  
+  const year = ahora.getFullYear();
+  const month = String(ahora.getMonth() + 1).padStart(2, '0');
+  const day = String(ahora.getDate()).padStart(2, '0');
+  const hours = String(ahora.getHours()).padStart(2, '0');
+  const minutes = String(ahora.getMinutes()).padStart(2, '0');
+  
+  const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+  fechaReservaInput.min = minDateTime;
 }
 
 function obtenerMesas() {
@@ -61,7 +79,7 @@ function renderMesas() {
   mesasGrid.innerHTML = libres.length
     ? libres.map((m) => `
         <div class="mesa mesa--${m.estado} ${mesaSeleccionada === m.id ? 'mesa--selected' : ''}" data-id="${m.id}" role="button" tabindex="0">
-          Mesa ${m.numero}<br><small>${m.capacidad} Personas</small>
+          Mesa ${m.numero}<br><small>${m.capacidad} pax</small>
         </div>`).join('')
     : '<p class="empty-state">No hay mesas disponibles</p>';
 
@@ -75,7 +93,8 @@ function renderMesas() {
 
 function renderMeseros() {
   const meseros = Storage.get(DB_KEYS.MESEROS) || [];
-  selectMesero.innerHTML = '<option value="" disabled selected>Seleccione un mesero</option>' +
+  selectMesero.innerHTML =
+    '<option value="" disabled selected>Seleccione un mesero</option>' +
     meseros.map((m) => `<option value="${m.id}">${m.nombre}</option>`).join('');
 }
 
@@ -108,7 +127,17 @@ function actualizarSubtotal() {
 
 function validarFormulario() {
   const hayPlatos = Object.values(cantidades).some((c) => c > 0);
-  btnCrearPedido.disabled = !(mesaSeleccionada && selectMesero.value && hayPlatos);
+  let tieneFechaValida = true;
+  
+  if (fechaReservaInput && fechaReservaInput.value) {
+    const fechaSeleccionada = new Date(fechaReservaInput.value);
+    const ahora = new Date();
+    ahora.setMinutes(ahora.getMinutes() + 5); // Margen de 5 minutos
+    tieneFechaValida = fechaSeleccionada >= ahora;
+  }
+  
+  const meseroSeleccionado = selectMesero.value;
+  btnCrearPedido.disabled = !(mesaSeleccionada && meseroSeleccionado && hayPlatos && tieneFechaValida);
 }
 
 function resetFormulario() {
@@ -120,6 +149,10 @@ function resetFormulario() {
   btnCrearPedido.textContent = 'Confirmar pedido';
   btnLiberarMesa.style.display = 'none';
   formPedido.reset();
+  if (fechaReservaInput) {
+    fechaReservaInput.value = '';
+    establecerMinFecha();
+  }
   renderPlatos();
   actualizarSubtotal();
   renderMesas();
@@ -137,6 +170,7 @@ function cargarPedidoEnFormulario(pedido) {
   modoEdicion = true;
   mesaSeleccionada = pedido.mesaId;
   selectMesero.value = String(pedido.meseroId);
+  if (fechaReservaInput) fechaReservaInput.value = pedido.fechaReserva || '';
   tituloPedido.textContent = `Editando mesa ${pedido.mesaId}`;
   btnCrearPedido.textContent = 'Guardar cambios';
   btnLiberarMesa.style.display = 'inline-flex';
@@ -205,23 +239,64 @@ platosList.addEventListener('click', (e) => {
   const actual = cantidades[id] || 0;
   const nuevo = Math.max(0, actual + delta);
   cantidades[id] = nuevo;
-  platosList.querySelector(`input[data-id="${id}"]`).value = nuevo;
+  const input = platosList.querySelector(`input[data-id="${id}"]`);
+  if (input) input.value = nuevo;
   actualizarSubtotal();
 });
 
 selectMesero.addEventListener('change', validarFormulario);
+if (fechaReservaInput) {
+  fechaReservaInput.addEventListener('change', validarFormulario);
+  fechaReservaInput.addEventListener('input', validarFormulario);
+  
+  // Validación estricta al cambiar la fecha
+  const validarFechaFutura = () => {
+    if (fechaReservaInput.value) {
+      const fechaSeleccionada = new Date(fechaReservaInput.value);
+      const ahora = new Date();
+      ahora.setMinutes(ahora.getMinutes() + 5); // Margen de 5 minutos
+      
+      if (fechaSeleccionada < ahora) {
+        showToast('La fecha y hora deben ser al menos 5 minutos en el futuro');
+        fechaReservaInput.value = '';
+        validarFormulario();
+        return false;
+      }
+    }
+    return true;
+  };
+  
+  fechaReservaInput.addEventListener('change', validarFechaFutura);
+  fechaReservaInput.addEventListener('blur', validarFechaFutura);
+}
 btnLiberarMesa.addEventListener('click', marcarMesaLibreYEliminarPedido);
 
 formPedido.addEventListener('submit', (e) => {
   e.preventDefault();
+
+  // Validar fecha futura
+  if (fechaReservaInput && fechaReservaInput.value) {
+    const fechaSeleccionada = new Date(fechaReservaInput.value);
+    const ahora = new Date();
+    ahora.setMinutes(ahora.getMinutes() + 5); // Margen de 5 minutos
+    
+    if (fechaSeleccionada < ahora) {
+      showToast('La fecha de reserva debe ser al menos 5 minutos en el futuro');
+      fechaReservaInput.value = '';
+      validarFormulario();
+      return;
+    }
+  }
 
   const platos = Storage.get(DB_KEYS.PLATOS) || [];
   const items = Object.entries(cantidades)
     .filter(([, cant]) => cant > 0)
     .map(([id, cant]) => {
       const plato = platos.find((p) => p.id === Number(id));
+      if (!plato) return null;
       return { platoId: plato.id, nombre: plato.nombre, precio: plato.precio, cantidad: cant };
-    });
+    })
+    .filter(item => item !== null);
 
   const pedidos = obtenerPedidos();
 
@@ -230,6 +305,7 @@ formPedido.addEventListener('submit', (e) => {
     if (!pedido) return;
     pedido.items = items;
     pedido.meseroId = Number(selectMesero.value);
+    pedido.fechaReserva = fechaReservaInput ? fechaReservaInput.value : null;
     guardarPedidos(pedidos);
     showToast('Pedido actualizado');
   } else {
@@ -237,6 +313,7 @@ formPedido.addEventListener('submit', (e) => {
       mesaId: mesaSeleccionada,
       meseroId: Number(selectMesero.value),
       items,
+      fechaReserva: fechaReservaInput ? fechaReservaInput.value : null,
     });
     pedidos.push(pedido);
     guardarPedidos(pedidos);
@@ -254,6 +331,7 @@ formPedido.addEventListener('submit', (e) => {
   renderMesas();
 });
 
+establecerMinFecha();
 renderMesas();
 renderMeseros();
 renderPlatos();

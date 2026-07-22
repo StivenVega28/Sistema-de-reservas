@@ -18,11 +18,17 @@ const cardsContainer = document.getElementById('admin-cards');
 const tablaPlatos = document.getElementById('tabla-platos');
 const tablaPropinas = document.getElementById('tabla-propinas');
 
+if (!cardsContainer || !tablaPlatos || !tablaPropinas) {
+  console.error('Faltan elementos DOM necesarios en admin.html');
+}
+
 function formatoMoneda(valor) {
   return valor.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 }
 
 function render() {
+  if (!cardsContainer || !tablaPlatos || !tablaPropinas) return;
+  
   const mesas = Storage.get(DB_KEYS.MESAS) || [];
   const meseros = Storage.get(DB_KEYS.MESEROS) || [];
   const platos = Storage.get(DB_KEYS.PLATOS) || [];

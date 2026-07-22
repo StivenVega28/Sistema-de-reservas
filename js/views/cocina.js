@@ -14,6 +14,10 @@ requireAuth(['admin', 'cocina']);
 const contenedorPreparacion = document.getElementById('pedidos-preparacion');
 const contenedorListos = document.getElementById('pedidos-listos');
 
+if (!contenedorPreparacion || !contenedorListos) {
+  console.error('Faltan elementos DOM necesarios en cocina.html');
+}
+
 function obtenerNombreMesa(mesaId) {
   const mesas = Storage.get(DB_KEYS.MESAS) || [];
   const mesa = mesas.find((m) => m.id === mesaId);
@@ -25,6 +29,8 @@ function formatoHora(iso) {
 }
 
 function renderBloque(pedidos, contenedor, tituloVacio) {
+  if (!contenedor) return;
+  
   if (pedidos.length === 0) {
     contenedor.innerHTML = `<p class="empty-state">${tituloVacio}</p>`;
     return;

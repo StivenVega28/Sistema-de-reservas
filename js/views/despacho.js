@@ -14,6 +14,10 @@ requireAuth(['admin', 'mesero', 'despacho']);
 
 const contenedor = document.getElementById('pedidos-despacho');
 
+if (!contenedor) {
+  console.error('Falta elemento DOM necesario en despacho.html');
+}
+
 function obtenerNombreMesa(mesaId) {
   const mesas = Storage.get(DB_KEYS.MESAS) || [];
   const mesa = mesas.find((m) => m.id === mesaId);
@@ -25,6 +29,8 @@ function formatoHora(iso) {
 }
 
 function render() {
+  if (!contenedor) return;
+  
   const pedidos = Storage.get(DB_KEYS.PEDIDOS) || [];
   const listos = pedidos.filter((p) => p.estado === 'listo');
 
