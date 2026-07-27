@@ -12,6 +12,7 @@ const DB_KEYS = {
   PEDIDOS: 'rr_pedidos',
   USUARIOS: 'rr_usuarios',
   SESION: 'rr_sesion',
+  RESERVAS: 'rr_reservas',
 };
 
 const Storage = {

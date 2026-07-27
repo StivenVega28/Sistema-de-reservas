@@ -13,8 +13,8 @@ import { getSesion, logout } from './auth.js';
 await seedDatabase();
 
 const ACCESOS_POR_ROL = {
-  admin: ['index', 'cocina', 'despacho', 'admin'],
-  mesero: ['index', 'despacho'],
+  admin: ['index', 'cocina', 'despacho', 'admin', 'reservas'],
+  mesero: ['index', 'despacho', 'reservas'],
   cocina: ['cocina'],
   despacho: ['despacho'],
 };

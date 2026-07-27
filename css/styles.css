@@ -457,7 +457,7 @@ th {
   align-items: center;
   justify-content: center;
   background-image: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
-    url('../assets/img/FondoLogin.png');
+    url('../assets/img/FondoLogin.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -608,8 +608,53 @@ th {
   opacity: 0.9;
 }
 
-.mesa--ocupada-box {
+/* ---------- Tarjetas de Reserva ---------- */
+.reservas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.reserva-card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  border-left: 5px solid var(--color-secondary);
   cursor: pointer;
-  border-style: dashed;
-  opacity: 0.9;
+  transition: var(--transition);
+}
+
+.reserva-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.reserva-card--proxima {
+  border-left-color: var(--color-warning);
+  background: #fff9e6;
+}
+
+.reserva-card--selected {
+  outline: 3px solid var(--color-primary);
+}
+
+.reserva-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.reserva-estado {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: var(--color-secondary);
+  color: #fff;
+  margin-top: 0.3rem;
+}
+
+.reserva--proxima .reserva-estado {
+  background: var(--color-warning);
 }

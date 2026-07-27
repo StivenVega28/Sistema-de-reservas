@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reservas | Sistema de Reservas</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body data-page="reservas">
+  <header class="navbar">
+    <div class="navbar__brand">Solo Sena</div>
+    <nav class="navbar__nav">
+      <a href="index.html" class="navbar__link" data-page="index">Mesero</a>
+      <a href="cocina.html" class="navbar__link" data-page="cocina">Cocina</a>
+      <a href="despacho.html" class="navbar__link" data-page="despacho">Despacho</a>
+      <a href="admin.html" class="navbar__link" data-page="admin">Admin</a>
+      <a href="reservas.html" class="navbar__link" data-page="reservas">Reservas</a>
+    </nav>
+    <div class="navbar__session">
+      <span id="navbar-usuario" class="navbar__usuario"></span>
+      <button id="btn-logout" class="btn btn--sm btn--outline" type="button">Salir</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1 class="page-title">Reservas Anticipadas</h1>
+
+    <section class="two-col">
+      <div>
+        <h2 class="page-title" style="font-size:1.1rem;">Mesas disponibles para reserva</h2>
+        <div id="mesas-disponibles" class="mesas-grid"></div>
+
+        <h2 class="page-title" style="font-size:1.1rem; margin-top:1.5rem;">Reservas activas</h2>
+        <div id="reservas-list" class="reservas-list"></div>
+      </div>
+
+      <div>
+        <h2 id="titulo-reserva" class="page-title" style="font-size:1.1rem;">Nueva reserva</h2>
+        <form id="form-reserva">
+          <div class="form-group">
+            <label class="form-label" for="select-mesa">Mesa</label>
+            <select id="select-mesa" class="form-control" required></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nombre-cliente">Nombre del cliente</label>
+            <input type="text" id="nombre-cliente" class="form-control" required minlength="3" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="telefono">Teléfono</label>
+            <input type="tel" id="telefono" class="form-control" required pattern="[0-9]{7,15}" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cantidad-personas">Cantidad de personas</label>
+            <input type="number" id="cantidad-personas" class="form-control" required min="1" max="10" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="fecha-hora-reserva">Fecha y hora de reserva</label>
+            <input type="datetime-local" id="fecha-hora-reserva" class="form-control" required />
+          </div>
+
+          <button type="submit" class="btn btn--block" id="btn-crear-reserva" disabled>
+            Confirmar reserva
+          </button>
+
+          <button type="button" id="btn-cancelar-reserva" class="btn btn--danger btn--block"
+            style="display:none; margin-top:0.75rem;">
+            Cancelar reserva
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/views/reservas.js"></script>
+</body>
+
+</html>

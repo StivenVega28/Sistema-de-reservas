@@ -74,6 +74,7 @@ function obtenerPedidoPorMesa(mesaId) {
 function renderMesas() {
   const mesas = obtenerMesas();
   const libres = mesas.filter((m) => m.estado === 'libre');
+  const reservadas = mesas.filter((m) => m.estado === 'reservada');
   const ocupadas = mesas.filter((m) => m.estado === 'ocupada');
 
   mesasGrid.innerHTML = libres.length
@@ -82,6 +83,17 @@ function renderMesas() {
           Mesa ${m.numero}<br><small>${m.capacidad} Personas</small>
         </div>`).join('')
     : '<p class="empty-state">No hay mesas disponibles</p>';
+
+  // Mostrar mesas reservadas (bloqueadas por reserva próxima)
+  if (reservadas.length > 0) {
+    const reservadasHTML = reservadas.map((m) => `
+      <div class="mesa mesa--reservada" data-id="${m.id}" role="button" tabindex="0">
+        Mesa ${m.numero}<br><small>Reservada</small>
+      </div>`).join('');
+    
+    // Insertar después de las mesas libres
+    mesasGrid.innerHTML += reservadasHTML;
+  }
 
   mesasOcupadas.innerHTML = ocupadas.length
     ? ocupadas.map((m) => `
