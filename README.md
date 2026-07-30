@@ -1,130 +1,255 @@
-# Sistema de Reservas para Restaurante
+# Sistema de Reservas - Guía de Instalación y Ejecución
 
-Proyecto en **HTML, CSS y JavaScript puro (ES Modules)** que simula un sistema
-de reservas de mesas, pedidos y gestión administrativa, usando **localStorage**
-como base de datos del navegador (sin backend).
+## 📋 Requisitos Previos
 
-## Características principales
+- **Node.js** (v18 o superior) - [Descargar aquí](https://nodejs.org/)
+- **Navegador web** moderno (Chrome, Firefox, Edge)
+- **Redis** (opcional, el sistema funciona sin él)
 
-- 🔐 **Sistema de autenticación** con roles (admin, mesero, cocina, despacho)
-- 🛡️ **Encriptación de contraseñas** usando Web Crypto API (PBKDF2)
-- 📅 **Reservas con fecha y hora** con validación de fechas futuras
-- 🔄 **Flujo de pedidos** en tiempo real (preparacion → listo → entregado)
-- 📊 **Panel administrativo** con métricas de ventas y propinas
-- 📱 **Diseño responsive** con mobile-first
-- 🔒 **Bloqueo de cuentas** tras múltiples intentos fallidos
+---
 
-## Estructura de carpetas
+## 🚀 Instalación Paso a Paso
 
+### 1. Obtener el Proyecto
+
+Si tienes el proyecto en tu computadora, ve a la carpeta:
 ```
-restaurante-reservas/
-├── index.html          # Vista Mesero (reservas + pedidos)
-├── login.html          # Vista de inicio de sesión
-├── cocina.html         # Vista Cocina
-├── despacho.html       # Vista Despacho
-├── admin.html          # Vista Admin (dashboard)
-├── css/
-│   └── styles.css      # Estilos globales, responsive, variables CSS
-├── js/
-│   ├── app.js           # Bootstrap: seed inicial + navbar activo + toast
-│   ├── auth.js          # Sistema de autenticación y gestión de sesiones
-│   ├── data/
-│   │   ├── seed.js      # Datos iniciales (mesas, meseros, platos, usuarios)
-│   │   └── models.js    # Fábricas (crearPedido) y helpers (subtotal)
-│   ├── utils/
-│   │   ├── storage.js   # Wrapper centralizado de localStorage
-│   │   ├── crypto.js    # Utilidades de encriptación (PBKDF2)
-│   │   └── validaciones.js # Validaciones de usuario y contraseña
-│   └── views/
-│       ├── login.js     # Lógica de inicio de sesión
-│       ├── mesero.js    # Gestión de mesas y pedidos
-│       ├── cocina.js    # Gestión de pedidos en cocina
-│       ├── despacho.js  # Gestión de entregas y propinas
-│       └── admin.js     # Dashboard administrativo
-└── assets/
-    ├── icons/
-    └── img/
+F:\Stiven\FRONT\Sistema-de-reservas
 ```
 
-## Flujo de datos (localStorage)
+O clona el repositorio si está en GitHub:
+```bash
+git clone https://github.com/StivenVega28/Sistema-de-reservas.git
+cd Sistema-de-reservas
+```
 
-| Clave         | Contenido                                  | Quién escribe               |
-|---------------|---------------------------------------------|------------------------------|
-| `rr_mesas`    | Estado de cada mesa (libre/ocupada)         | Mesero, Despacho            |
-| `rr_meseros`  | Catálogo de meseros                          | Seed (fijo)                  |
-| `rr_platos`   | Catálogo de platos y precios                 | Seed (fijo)                  |
-| `rr_pedidos`  | Pedidos con items, estado, propina, fechaReserva | Mesero (crea), Cocina (listo), Despacho (entregado) |
-| `rr_usuarios` | Usuarios con contraseñas encriptadas         | Seed (fijo)                  |
-| `rr_sesion`   | Sesión activa del usuario actual              | Auth (login/logout)         |
+### 2. Instalar Dependencias
 
-### Ciclo de un pedido
-1. **Mesero**: selecciona mesa libre + mesero + platos + fecha/hora → crea pedido `preparacion`, mesa pasa a `ocupada`.
-2. **Cocina**: ve pedidos `preparacion`, los marca `listo`.
-3. **Despacho**: ve pedidos `listo`, registra propina y marca `entregado` → mesa vuelve a `libre`.
-4. **Admin**: consolida métricas en tiempo real (recalcula sobre pedidos `entregado`).
+Abre una terminal en la carpeta del proyecto y ejecuta:
 
-### Estados de pedidos
-- `preparacion`: Pedido creado por el mesero, visible en cocina
-- `listo`: Pedido preparado por cocina, visible en despacho
-- `entregado`: Pedido entregado al cliente, mesa liberada
+```bash
+npm install
+```
 
-### Estados de mesas
-- `libre`: Mesa disponible para reservas
-- `ocupada`: Mesa con pedido activo
+Esto instalará todas las dependencias necesarias:
+- express (servidor backend)
+- jsonwebtoken (autenticación JWT)
+- bcryptjs (encriptación de passwords)
+- redis (cliente de Redis)
+- cookie-parser (manejo de cookies)
+- dotenv (variables de entorno)
+- uuid (generación de tokens únicos)
+- nodemon (reinicio automático del servidor)
 
-## Buenas prácticas aplicadas
-- Separación de responsabilidades (data / utils / views / auth).
-- Módulos ES6 (`import`/`export`), sin variables globales salvo `showToast`.
-- Wrapper único de `localStorage` (`Storage.get/set`) con manejo de errores y `JSON.stringify/parse`.
-- Nomenclatura en español consistente con el dominio del negocio.
-- CSS con variables, mobile-first y layout con Grid/Flexbox responsive.
-- Sincronización entre pestañas usando el evento `storage`.
-- Encriptación segura de contraseñas usando Web Crypto API (PBKDF2).
-- Validación de elementos DOM para prevenir errores de referencia nula.
-- Sistema de roles y permisos granular para cada vista.
-- Bloqueo de cuentas tras múltiples intentos fallidos de login.
+### 3. Verificar Variables de Entorno
 
-## Cómo ejecutar
-Abre `index.html` con un servidor local (por ejemplo, extensión "Live Server" de VS Code)
-para que los módulos ES6 funcionen correctamente (no abrir con `file://` directo).
+El archivo `.env` ya debería estar configurado. Verifica que contenga:
 
-## Usuarios demo
-El sistema incluye usuarios de prueba para facilitar el desarrollo:
+```env
+PORT=4000
+JWT_SECRET=clave_super_secreta_cambiarla_en_produccion
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_EXPIRES_IN=7d
+REDIS_URL=redis://localhost:6379
+NODE_ENV=development
+```
 
-| Usuario   | Contraseña | Rol      | Permisos                       |
-|-----------|------------|----------|--------------------------------|
-| admin     | Admin123   | admin    | Todas las vistas               |
-| mesero    | Mesero123  | mesero   | Mesero, Despacho               |
-| cocina    | Cocina123  | cocina   | Cocina                         |
-| despacho  | Despacho123| despacho | Despacho                       |
+---
 
-## Características de seguridad
-- Contraseñas encriptadas usando PBKDF2 con 100,000 iteraciones
-- Bloqueo temporal tras 5 intentos fallidos (30 segundos)
-- Sesiones con expiración de 8 horas
-- Validación de contraseñas (mínimo 8 caracteres, mayúscula, minúscula, número)
-- Sanitización de entradas de usuario para prevenir XSS
+## 🏃 Ejecutar el Proyecto
 
-## Mejoras recientes
-- ✅ Sistema de autenticación completo con encriptación
-- ✅ Validación de fechas futuras para reservas (mínimo 5 minutos)
-- ✅ Bloqueo de fechas y horas anteriores en el selector
-- ✅ Validación de elementos DOM para prevenir errores
-- ✅ Capitalización automática del nombre de usuario
-- ✅ Validación de formularios en tiempo real
-- ✅ Manejo robusto de errores en localStorage
-- ✅ Marcado de navegación activa en todas las vistas
-- ✅ Permisos granulares por rol en el navbar
+### Opción A: Desarrollo (Recomendado)
 
-## Tecnologías utilizadas
-- **HTML5**: Estructura semántica
-- **CSS3**: Variables CSS, Grid, Flexbox, animaciones
-- **JavaScript ES6+**: Módulos, async/await, Web Crypto API
-- **LocalStorage**: Persistencia de datos en el navegador
-- **Web Crypto API**: Encriptación de contraseñas
+```bash
+npm run dev
+```
 
-## Notas de desarrollo
-- El sistema usa módulos ES6, por lo que requiere un servidor local
-- Los datos persisten en localStorage del navegador
-- La sincronización entre pestañas usa el evento `storage`
-- Las sesiones expiran después de 8 horas de inactividad
+Esto iniciará el servidor con **nodemon** que se reinicia automáticamente cuando haces cambios en el código.
+
+### Opción B: Producción
+
+```bash
+npm start
+```
+
+Esto iniciará el servidor sin reinicio automático.
+
+---
+
+## 🌐 Abrir el Frontend
+
+Una vez que el servidor esté corriendo, abre tu navegador y navega a:
+
+```
+file:///F:/Stiven/FRONT/Sistema-de-reservas/login.html
+```
+
+O simplemente haz doble clic en el archivo `login.html` en tu carpeta del proyecto.
+
+---
+
+## 🔑 Credenciales de Acceso
+
+| Rol | Usuario | Email | Password |
+|-----|---------|-------|----------|
+| **Admin** | `admin` | `admin@restaurante.com` | `admin123` |
+| **Mesero** | `mesero` | `mesero@restaurante.com` | `mesero123` |
+| **Cocina** | `cocina` | `cocina@restaurante.com` | `cocina123` |
+| **Despacho** | `despacho` | `despacho@restaurante.com` | `despacho123` |
+
+**Puedes usar el usuario simple o el email completo para iniciar sesión.**
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+Sistema-de-reservas/
+├── backend/                    # Servidor backend
+│   ├── config/
+│   │   └── redis.js           # Configuración de Redis
+│   ├── controllers/
+│   │   └── authController.js  # Lógica de autenticación
+│   ├── middlewares/
+│   │   ├── auth.js           # Middleware de autenticación
+│   │   └── roleGuard.js      # Middleware de roles
+│   ├── routes/
+│   │   └── authRoutes.js     # Rutas de la API
+│   ├── services/
+│   │   └── tokenService.js   # Servicio de tokens JWT
+│   └── server.js            # Servidor Express principal
+├── js/                        # Frontend JavaScript
+│   ├── services/
+│   │   └── api.js           # Servicio de API
+│   ├── views/
+│   │   ├── login.js         # Vista de login
+│   │   ├── mesero.js        # Vista de mesero
+│   │   ├── cocina.js        # Vista de cocina
+│   │   └── despacho.js      # Vista de despacho
+│   ├── auth.js              # Lógica de autenticación
+│   ├── app.js               # Aplicación principal
+│   └── utils/               # Utilidades
+├── css/                       # Estilos
+│   └── styles.css
+├── *.html                     # Páginas HTML
+├── .env                       # Variables de entorno
+├── package.json              # Dependencias de Node.js
+└── README.md                 # Este archivo
+```
+
+---
+
+## 🔧 Configuración Opcional: Redis
+
+El sistema funciona sin Redis (usa un cliente mock), pero para producción puedes instalar Redis:
+
+### Windows:
+1. Descarga Redis para Windows desde [GitHub](https://github.com/microsoftarchive/redis/releases)
+2. O usa Docker: `docker run -d -p 6379:6379 redis`
+
+### Linux/Mac:
+```bash
+# Ubuntu/Debian
+sudo apt-get install redis-server
+
+# Mac
+brew install redis
+```
+
+Una vez instalado, Redis se conectará automáticamente usando la configuración del `.env`.
+
+---
+
+## 🛠️ Comandos Disponibles
+
+```bash
+# Instalar dependencias
+npm install
+
+# Iniciar servidor en desarrollo
+npm run dev
+
+# Iniciar servidor en producción
+npm start
+
+# Instalar nueva dependencia
+npm install <nombre-paquete>
+
+# Instalar dependencia de desarrollo
+npm install --save-dev <nombre-paquete>
+```
+
+---
+
+## 📡 Endpoints de la API
+
+Una vez que el servidor esté corriendo en `http://localhost:4000`, estos endpoints estarán disponibles:
+
+### Públicos:
+- `POST /api/auth/login` - Iniciar sesión
+- `POST /api/auth/refresh-token` - Renovar token
+- `POST /api/auth/logout` - Cerrar sesión
+
+### Protegidos (requieren token):
+- `GET /api/auth/me` - Obtener usuario actual
+- `GET /api/auth/reservations` - Ver reservas
+- `POST /api/auth/reservations` - Crear reserva
+- `PUT /api/auth/reservations/:id/status` - Cambiar estado
+- `POST /api/auth/admin/change-role` - Cambiar rol (solo admin)
+
+### Sistema:
+- `GET /api/health` - Verificar estado del servidor
+- `GET /api/redis-test` - Verificar conexión Redis
+
+---
+
+## 🐛 Solución de Problemas
+
+### El servidor no inicia:
+- Verifica que Node.js esté instalado: `node --version`
+- Verifica que las dependencias estén instaladas: `npm install`
+- Verifica que el puerto 4000 no esté en uso
+
+### El login no funciona:
+- Verifica que el servidor backend esté corriendo
+- Revisa las credenciales en la tabla de arriba
+- Abre la consola del navegador (F12) para ver errores
+
+### Error de conexión Redis:
+- Es normal si no tienes Redis instalado
+- El sistema usará automáticamente el cliente mock
+- Redis es opcional para el funcionamiento básico
+
+---
+
+## 🎯 Próximos Pasos
+
+Una vez que el proyecto esté funcionando:
+
+1. **Probar diferentes roles** para ver las diferentes vistas
+2. **Verificar el control de acceso** por rol
+3. **Probar el refresh token** (dejar la sesión abierta 15 min)
+4. **Instalar Redis** para producción (opcional)
+
+---
+
+## 📝 Notas de Desarrollo
+
+- El servidor se reinicia automáticamente con `npm run dev`
+- Los cambios en el frontend requieren recargar la página
+- Las contraseñas están hasheadas con bcryptjs
+- Los tokens JWT expiran en 15 minutos
+- Los refresh tokens duran 7 días
+
+---
+
+## 🤝 Soporte
+
+Si encuentras algún problema:
+1. Revisa la consola del navegador (F12)
+2. Revisa la terminal donde corre el servidor
+3. Verifica que todas las dependencias estén instaladas
+
+---
+
+**¡Disfruta usando el Sistema de Reservas!** 🎉

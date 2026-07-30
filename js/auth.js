@@ -1,11 +1,6 @@
 /** auth.js */
-import { Storage, DB_KEYS } from './utils/storage.js';
-import { verificarPassword } from './utils/crypto.js';
+import { api } from './services/api.js';
 import { validarUsuario, validarPassword, sanitizarTexto } from './utils/validaciones.js';
-
-const MAX_INTENTOS = 5;
-const BLOQUEO_MS = 30_000; // 30s
-const SESION_DURACION_MS = 8 * 60 * 60 * 1000; // 8h
 
 export const RUTAS_POR_ROL = {
   admin: 'admin.html',
@@ -24,58 +19,58 @@ export async function login(usuarioInput, passwordInput) {
   const valPassword = validarPassword(password);
   if (!valPassword.valido) return { ok: false, mensaje: valPassword.mensaje };
 
-  const usuarios = Storage.get(DB_KEYS.USUARIOS) || [];
-  const registro = usuarios.find((u) => u.usuario === usuario);
+  try {
+    // Usar email o usuario para login
+    const email = usuario.includes('@') ? usuario : `${usuario}@restaurante.com`;
+    const response = await api.login(email, password);
 
-  if (!registro) {
-    return { ok: false, mensaje: 'Usuario o contraseña incorrectos.' };
-  }
+    if (response.user) {
+      // Guardar datos de sesión en localStorage para compatibilidad
+      const sesion = {
+        usuario: response.user.usuario,
+        rol: response.user.role,
+        email: response.user.email,
+        name: response.user.name,
+        inicio: Date.now(),
+      };
+      localStorage.setItem('sesion', JSON.stringify(sesion));
 
-  if (registro.bloqueadoHasta && Date.now() < registro.bloqueadoHasta) {
-    const segundos = Math.ceil((registro.bloqueadoHasta - Date.now()) / 1000);
-    return { ok: false, mensaje: `Cuenta bloqueada temporalmente. Intenta en ${segundos}s.` };
-  }
-
-  const passwordValida = await verificarPassword(password, registro.salt, registro.hash);
-
-  if (!passwordValida) {
-    registro.intentosFallidos = (registro.intentosFallidos || 0) + 1;
-    if (registro.intentosFallidos >= MAX_INTENTOS) {
-      registro.bloqueadoHasta = Date.now() + BLOQUEO_MS;
-      registro.intentosFallidos = 0;
+      return { 
+        ok: true, 
+        mensaje: 'Inicio de sesión exitoso.', 
+        rol: response.user.role,
+        user: response.user
+      };
     }
-    Storage.set(DB_KEYS.USUARIOS, usuarios);
-    return { ok: false, mensaje: 'Usuario o contraseña incorrectos.' };
+
+    return { ok: false, mensaje: 'Error en el login' };
+  } catch (error) {
+    return { ok: false, mensaje: error.message || 'Usuario o contraseña incorrectos.' };
   }
-
-  registro.intentosFallidos = 0;
-  registro.bloqueadoHasta = null;
-  Storage.set(DB_KEYS.USUARIOS, usuarios);
-
-  const sesion = {
-    usuario: registro.usuario,
-    rol: registro.rol,
-    inicio: Date.now(),
-    expira: Date.now() + SESION_DURACION_MS,
-  };
-  Storage.set(DB_KEYS.SESION, sesion);
-
-  return { ok: true, mensaje: 'Inicio de sesión exitoso.', rol: registro.rol };
 }
 
-export function logout() {
-  Storage.remove(DB_KEYS.SESION);
-  window.location.href = 'login.html';
+export async function logout() {
+  try {
+    await api.logout();
+  } catch (error) {
+    console.error('Error en logout:', error);
+  } finally {
+    localStorage.removeItem('sesion');
+    window.location.href = 'login.html';
+  }
 }
 
 export function getSesion() {
-  const sesion = Storage.get(DB_KEYS.SESION);
-  if (!sesion) return null;
-  if (Date.now() > sesion.expira) {
-    Storage.remove(DB_KEYS.SESION);
+  const sesionStr = localStorage.getItem('sesion');
+  if (!sesionStr) return null;
+  
+  try {
+    const sesion = JSON.parse(sesionStr);
+    return sesion;
+  } catch (error) {
+    localStorage.removeItem('sesion');
     return null;
   }
-  return sesion;
 }
 
 export function requireAuth(rolesPermitidos = []) {

@@ -1,12 +1,24 @@
 /** validaciones.js */
 const USUARIO_REGEX = /^[a-zA-Z0-9_]{4,20}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 8;
 
 export function validarUsuario(usuario) {
   if (!usuario || typeof usuario !== 'string') {
     return { valido: false, mensaje: 'El usuario es obligatorio.' };
   }
-  if (!USUARIO_REGEX.test(usuario)) {
+  
+  // Aceptar formato de usuario normal o email
+  const esEmail = usuario.includes('@');
+  const regexValido = esEmail ? EMAIL_REGEX.test(usuario) : USUARIO_REGEX.test(usuario);
+  
+  if (!regexValido) {
+    if (esEmail) {
+      return {
+        valido: false,
+        mensaje: 'El formato del email no es válido.',
+      };
+    }
     return {
       valido: false,
       mensaje:
@@ -23,18 +35,7 @@ export function validarPassword(password) {
   if (password.length < PASSWORD_MIN_LENGTH) {
     return { valido: false, mensaje: `La contraseña debe tener mínimo ${PASSWORD_MIN_LENGTH} caracteres.` };
   }
-  if (!/[A-Z]/.test(password)) {
-    return { valido: false, mensaje: 'La contraseña debe incluir al menos una letra mayúscula.' };
-  }
-  if (!/[a-z]/.test(password)) {
-    return { valido: false, mensaje: 'La contraseña debe incluir al menos una letra minúscula.' };
-  }
-  if (!/[0-9]/.test(password)) {
-    return { valido: false, mensaje: 'La contraseña debe incluir al menos un número.' };
-  }
-  if (/\s/.test(password)) {
-    return { valido: false, mensaje: 'La contraseña no puede contener espacios.' };
-  }
+  // Validaciones relajadas - solo verificar longitud
   return { valido: true, mensaje: '' };
 }
 

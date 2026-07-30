@@ -1,16 +1,12 @@
 /**
  * app.js
  * Punto de entrada común a todas las vistas.
- * 1. Siembra datos iniciales en localStorage si no existen.
- * 2. Marca el link activo del navbar según la página actual.
- * 3. Muestra información de sesión y botón de logout.
- * 4. Expone helper global showToast() reutilizado por las vistas.
+ * 1. Marca el link activo del navbar según la página actual.
+ * 2. Muestra información de sesión y botón de logout.
+ * 3. Expone helper global showToast() reutilizado por las vistas.
  */
 
-import { seedDatabase } from './data/seed.js';
 import { getSesion, logout } from './auth.js';
-
-await seedDatabase();
 
 const ACCESOS_POR_ROL = {
   admin: ['index', 'cocina', 'despacho', 'admin', 'reservas'],
@@ -57,7 +53,7 @@ function mostrarSesion() {
   const sessionDiv = document.createElement('div');
   sessionDiv.className = 'navbar__session';
   sessionDiv.innerHTML = `
-  <span class="navbar__usuario">${capitalizarPrimeraLetra(sesion.usuario)}</span>
+  <span class="navbar__usuario">${capitalizarPrimeraLetra(sesion.name || sesion.usuario)}</span>
   <button id="btn-logout" class="btn btn--sm btn--danger">Cerrar sesión</button>
 `;
   navbar.appendChild(sessionDiv);

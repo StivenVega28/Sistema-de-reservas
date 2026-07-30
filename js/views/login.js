@@ -1,6 +1,5 @@
 import { login, getSesion, RUTAS_POR_ROL } from '../auth.js';
 import { validarUsuario, validarPassword } from '../utils/validaciones.js';
-import { seedDatabase } from '../data/seed.js';
 
 const form = document.getElementById('form-login');
 const inputUsuario = document.getElementById('input-usuario');
@@ -13,8 +12,6 @@ const sesionActiva = getSesion();
 if (sesionActiva) {
   window.location.href = RUTAS_POR_ROL[sesionActiva.rol] || 'index.html';
 }
-
-await seedDatabase();
 
 function mostrarError(mensaje) {
   errorEl.textContent = mensaje;
@@ -34,7 +31,7 @@ function validarEnVivo() {
 }
 
 inputUsuario.addEventListener('input', () => {
-  inputUsuario.value = inputUsuario.value.replace(/[^a-zA-Z0-9_]/g, '');
+  // No restringir caracteres, dejar que la validación maneje el formato
   mostrarError('');
   validarEnVivo();
 });
