@@ -1,0 +1,45 @@
+# Dependencias de Node.js
+node_modules/
+package-lock.json
+
+# Variables de entorno (contiene secrets)
+.env
+.env.local
+.env.production
+.env.development
+
+# Archivos temporales y de sistema
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.temp
+
+# Archivos de configuración local
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos generados por build
+dist/
+build/
+.cache/
+
+# Archivos de pruebas y desarrollo
+temp-hashes.js
+generate-hashes.js
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
