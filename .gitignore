@@ -1,0 +1,23 @@
+node_modules/
+.env
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Entorno local
+.env.*
+!.env.example
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Salidas temporales
+tmp/
+temp/
+coverage/

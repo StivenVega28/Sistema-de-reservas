@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Restaurant</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .section { display: none; }
+    .section.active { display: block; }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; min-width: 180px; }
+    .item-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 8px; flex-wrap: wrap; }
+    .item-row .form-group { flex: 1; min-width: 120px; margin-bottom: 0; }
+    .item-row .btn { margin-bottom: 0; align-self: flex-end; }
+    .items-list { max-height: 300px; overflow-y: auto; }
+    .mini-table { font-size: 0.8rem; }
+    .mini-table td, .mini-table th { padding: 6px 8px; }
+    .preview-box { background: var(--gray-50); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .preview-box h4 { margin-bottom: 8px; }
+    .preview-line { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem; }
+    .preview-line.total { font-weight: 700; font-size: 1rem; border-top: 2px solid var(--gray-300); padding-top: 8px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- ==================== SIDEBAR ==================== -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h2>&#9733; Restaurant</h2>
+        <div class="user-info" id="sidebar-user">Administrador</div>
+      </div>
+      <div class="sidebar-nav" id="sidebar-nav">
+        <a href="#" data-section="dashboard" class="active"><span class="nav-icon">&#9632;</span> Dashboard</a>
+        <a href="#" data-section="mesas"><span class="nav-icon">&#9638;</span> Mesas</a>
+        <a href="#" data-section="reservas"><span class="nav-icon">&#9776;</span> Reservas</a>
+        <a href="#" data-section="pedidos"><span class="nav-icon">&#9997;</span> Pedidos</a>
+        <a href="#" data-section="cocina"><span class="nav-icon">&#9832;</span> Cocina</a>
+        <a href="#" data-section="menu"><span class="nav-icon">&#9749;</span> Menu</a>
+        <a href="#" data-section="facturacion"><span class="nav-icon">&#9875;</span> Facturacion</a>
+        <a href="#" data-section="caja"><span class="nav-icon">&#10066;</span> Caja</a>
+        <a href="#" data-section="reportes"><span class="nav-icon">&#9830;</span> Reportes</a>
+        <a href="#" data-section="despachos"><span class="nav-icon">&#10148;</span> Despachos</a>
+        <a href="#" data-section="usuarios"><span class="nav-icon">&#9823;</span> Usuarios</a>
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="API.logout()">&#10140; Cerrar Sesion</button>
+      </div>
+    </nav>
+
+    <!-- ==================== MAIN ==================== -->
+    <div class="main-content">
+      <div class="topbar">
+        <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+        <h1 id="topbar-title">Dashboard</h1>
+        <div class="text-sm text-gray" id="topbar-date"></div>
+      </div>
+
+      <div class="content-area">
+
+        <!-- ============ DASHBOARD ============ -->
+        <div id="sec-dashboard" class="section active">
+          <div class="stats-grid" id="dashboard-stats"></div>
+          <div class="panel-card">
+            <div class="panel-card-header"><h2>Resumen rapido</h2></div>
+            <div class="panel-card-body" id="dashboard-resumen">
+              <p class="text-gray">Cargando estadisticas...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ MESAS ============ -->
+        <div id="sec-mesas" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Mapa de Mesas</h2>
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-trasladar')">Trasladar mesa</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="mesas-grid" id="mesas-grid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ RESERVAS ============ -->
+        <div id="sec-reservas" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Reservas</h2>
+              <button class="btn btn-primary btn-sm" onclick="openModalNuevaReserva()">+ Nueva Reserva</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="tabs">
+                <button class="tab-btn active" data-tab="tab-reservas-tabla">Tabla</button>
+                <button class="tab-btn" data-tab="tab-reservas-calendario">Calendario</button>
+              </div>
+              <!-- Tab Tabla -->
+              <div class="tab-content active" id="tab-reservas-tabla">
+                <div class="filters-bar">
+                  <input type="date" id="filtro-reserva-fecha">
+                  <select id="filtro-reserva-estado">
+                    <option value="">Todos los estados</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="confirmada">Confirmada</option>
+                    <option value="en_mesa">En mesa</option>
+                    <option value="completada">Completada</option>
+                    <option value="cancelada">Cancelada</option>
+                    <option value="no_show">No show</option>
+                  </select>
+                  <button class="btn btn-outline btn-sm" onclick="loadReservas()">Filtrar</button>
+                </div>
+                <div class="table-responsive">
+                  <table>
+                    <thead>
+                      <tr><th>ID</th><th>Mesa</th><th>Cliente</th><th>Personas</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="reservas-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <!-- Tab Calendario -->
+              <div class="tab-content" id="tab-reservas-calendario">
+                <div class="filters-bar">
+                  <input type="date" id="cal-inicio">
+                  <input type="date" id="cal-fin">
+                  <button class="btn btn-outline btn-sm" onclick="loadCalendario()">Ver</button>
+                </div>
+                <div id="calendario-container"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ PEDIDOS ============ -->
+        <div id="sec-pedidos" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Pedidos</h2>
+              <button class="btn btn-primary btn-sm" onclick="openModalNuevoPedido()">+ Nuevo Pedido</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr><th>ID</th><th>Mesa</th><th>Mesero</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr>
+                  </thead>
+                  <tbody id="pedidos-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ COCINA ============ -->
+        <div id="sec-cocina" class="section">
+          <div class="help-card"><div class="help-icon">!</div><div><strong>Vista de cocina</strong><span>Supervisa los platos pendientes y cambia su estado hasta listo para que puedan despacharse.</span></div></div>
+          <div class="stats-grid" id="cocina-stats"></div>
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Cola de Cocina</h2>
+              <button class="btn btn-outline btn-sm" onclick="loadCocina()">Actualizar</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="filters-bar">
+                <select id="filtro-cocina-estado" onchange="renderCocina()">
+                  <option value="">Todos</option>
+                  <option value="pendiente">Pendientes</option>
+                  <option value="en_preparacion">En preparacion</option>
+                </select>
+              </div>
+              <div class="cocina-grid" id="admin-cocina-grid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ MENU ============ -->
+        <div id="sec-menu" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header"><h2>Gestion de Menu</h2></div>
+            <div class="panel-card-body">
+              <div class="tabs">
+                <button class="tab-btn active" data-tab="tab-platos">Platos</button>
+                <button class="tab-btn" data-tab="tab-categorias">Categorias</button>
+                <button class="tab-btn" data-tab="tab-modificadores">Modificadores</button>
+                <button class="tab-btn" data-tab="tab-insumos">Insumos</button>
+              </div>
+              <!-- Platos -->
+              <div class="tab-content active" id="tab-platos">
+                <div class="mb-4"><button class="btn btn-primary btn-sm" onclick="openModalPlato()">+ Nuevo Plato</button></div>
+                <div class="table-responsive">
+                  <table>
+                    <thead><tr><th>Nombre</th><th>Categoria</th><th>Precio</th><th>Disponible</th><th>Agotado</th><th>Acciones</th></tr></thead>
+                    <tbody id="platos-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <!-- Categorias -->
+              <div class="tab-content" id="tab-categorias">
+                <div class="filters-bar mb-4">
+                  <input type="text" id="input-cat-nombre" placeholder="Nombre categoria">
+                  <button class="btn btn-primary btn-sm" onclick="crearCategoria()">+ Agregar</button>
+                </div>
+                <div class="table-responsive">
+                  <table>
+                    <thead><tr><th>ID</th><th>Nombre</th></tr></thead>
+                    <tbody id="categorias-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <!-- Modificadores -->
+              <div class="tab-content" id="tab-modificadores">
+                <div class="filters-bar mb-4">
+                  <input type="text" id="input-mod-nombre" placeholder="Nombre modificador">
+                  <input type="number" id="input-mod-precio" placeholder="Precio extra" step="100" value="0">
+                  <button class="btn btn-primary btn-sm" onclick="crearModificador()">+ Agregar</button>
+                </div>
+                <div class="table-responsive">
+                  <table>
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Precio extra</th></tr></thead>
+                    <tbody id="modificadores-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <!-- Insumos -->
+              <div class="tab-content" id="tab-insumos">
+                <div class="mb-4"><button class="btn btn-primary btn-sm" onclick="openModalInsumo()">+ Nuevo Insumo</button></div>
+                <div class="table-responsive">
+                  <table>
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Unidad</th><th>Stock</th><th>Stock min</th><th>Acciones</th></tr></thead>
+                    <tbody id="insumos-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ FACTURACION ============ -->
+        <div id="sec-facturacion" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Facturacion</h2>
+              <button class="btn btn-primary btn-sm" onclick="openModalGenerarFactura()">Generar Factura</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="table-responsive">
+                <table>
+                  <thead><tr><th>Consecutivo</th><th>Mesa</th><th>Mesero</th><th>Subtotal</th><th>Impuesto</th><th>Total</th><th>Metodo</th><th>Estado</th><th>Acciones</th></tr></thead>
+                  <tbody id="facturas-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ CAJA ============ -->
+        <div id="sec-caja" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Caja del Dia</h2>
+              <div class="filters-bar" style="margin-bottom:0">
+                <input type="date" id="caja-fecha">
+                <button class="btn btn-outline btn-sm" onclick="loadCajaResumen()">Consultar</button>
+                <button class="btn btn-danger btn-sm" onclick="cerrarCaja()">Cerrar Caja</button>
+              </div>
+            </div>
+            <div class="panel-card-body">
+              <div class="stats-grid" id="caja-stats"></div>
+              <h3 class="mb-2">Facturas del dia</h3>
+              <div class="table-responsive">
+                <table>
+                  <thead><tr><th>Consecutivo</th><th>Total</th><th>Metodo</th><th>Estado</th></tr></thead>
+                  <tbody id="caja-facturas-tbody"></tbody>
+                </table>
+              </div>
+              <h3 class="mt-4 mb-2">Historial de Cierres</h3>
+              <div class="table-responsive">
+                <table>
+                  <thead><tr><th>ID</th><th>Fecha</th><th>Total</th><th>Facturas</th><th>Usuario</th></tr></thead>
+                  <tbody id="caja-cierres-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ REPORTES ============ -->
+        <div id="sec-reportes" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header"><h2>Reportes</h2></div>
+            <div class="panel-card-body">
+              <div class="tabs">
+                <button class="tab-btn active" data-tab="tab-rep-ventas">Ventas</button>
+                <button class="tab-btn" data-tab="tab-rep-platos">Platos vendidos</button>
+                <button class="tab-btn" data-tab="tab-rep-mesas">Mesas rotacion</button>
+                <button class="tab-btn" data-tab="tab-rep-auditoria">Auditoria</button>
+              </div>
+              <!-- Ventas -->
+              <div class="tab-content active" id="tab-rep-ventas">
+                <div class="filters-bar">
+                  <input type="date" id="rep-ventas-inicio">
+                  <input type="date" id="rep-ventas-fin">
+                  <button class="btn btn-primary btn-sm" onclick="loadRepVentas()">Consultar</button>
+                </div>
+                <div id="rep-ventas-totales" class="stats-grid mb-4"></div>
+                <div class="table-responsive">
+                  <table><thead><tr><th>Fecha</th><th>Facturas</th><th>Subtotal</th><th>Impuesto</th><th>Total</th></tr></thead>
+                  <tbody id="rep-ventas-tbody"></tbody></table>
+                </div>
+              </div>
+              <!-- Platos vendidos -->
+              <div class="tab-content" id="tab-rep-platos">
+                <div class="filters-bar">
+                  <input type="date" id="rep-platos-inicio">
+                  <input type="date" id="rep-platos-fin">
+                  <button class="btn btn-primary btn-sm" onclick="loadRepPlatos()">Consultar</button>
+                </div>
+                <div class="table-responsive">
+                  <table><thead><tr><th>#</th><th>Plato</th><th>Cantidad</th><th>Ingresos</th></tr></thead>
+                  <tbody id="rep-platos-tbody"></tbody></table>
+                </div>
+              </div>
+              <!-- Mesas rotacion -->
+              <div class="tab-content" id="tab-rep-mesas">
+                <div class="filters-bar">
+                  <input type="date" id="rep-mesas-inicio">
+                  <input type="date" id="rep-mesas-fin">
+                  <button class="btn btn-primary btn-sm" onclick="loadRepMesas()">Consultar</button>
+                </div>
+                <div class="table-responsive">
+                  <table><thead><tr><th>Mesa</th><th>Pedidos</th><th>Reservas</th><th>Ingresos</th></tr></thead>
+                  <tbody id="rep-mesas-tbody"></tbody></table>
+                </div>
+              </div>
+              <!-- Auditoria -->
+              <div class="tab-content" id="tab-rep-auditoria">
+                <div class="filters-bar">
+                  <select id="rep-aud-entidad">
+                    <option value="">Todas las entidades</option>
+                    <option value="mesas">Mesas</option>
+                    <option value="reservas">Reservas</option>
+                    <option value="pedidos">Pedidos</option>
+                    <option value="pedido_detalle">Detalle de pedido</option>
+                    <option value="despachos">Despachos</option>
+                    <option value="facturas">Facturas</option>
+                    <option value="usuarios">Usuarios</option>
+                  </select>
+                  <input type="date" id="rep-aud-fecha">
+                  <button class="btn btn-primary btn-sm" onclick="loadRepAuditoria()">Consultar</button>
+                </div>
+                <div class="table-responsive">
+                  <table><thead><tr><th>Usuario</th><th>Accion</th><th>Entidad</th><th>Detalle</th><th>Fecha</th></tr></thead>
+                  <tbody id="rep-auditoria-tbody"></tbody></table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ DESPACHOS ============ -->
+        <div id="sec-despachos" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Despachos</h2>
+              <div class="filters-bar" style="margin-bottom:0">
+                <select id="filtro-despacho-estado">
+                  <option value="">Todos</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="en_ruta">En ruta</option>
+                  <option value="entregado">Entregado</option>
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="loadDespachos()">Filtrar</button>
+                <button class="btn btn-primary btn-sm" onclick="openModalDespacho()">+ Nuevo Despacho</button>
+              </div>
+            </div>
+            <div class="panel-card-body">
+              <div class="table-responsive">
+                <table>
+                  <thead><tr><th>ID</th><th>Pedido</th><th>Mesa</th><th>Despachador</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+                  <tbody id="despachos-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ USUARIOS ============ -->
+        <div id="sec-usuarios" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Usuarios</h2>
+              <button class="btn btn-danger btn-sm" onclick="resetDemoData()">Resetear datos demo</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="table-responsive">
+                <table>
+                  <thead><tr><th>Username</th><th>Nombre</th><th>Rol</th><th>Activo</th></tr></thead>
+                  <tbody id="usuarios-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content-area -->
+    </div><!-- /main-content -->
+  </div><!-- /app-layout -->
+
+  <!-- ============================================================
+       MODALS
+       ============================================================ -->
+
+  <!-- Modal Mesa Detalle -->
+  <div class="modal-overlay" id="modal-mesa">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Detalle de Mesa</h3>
+        <button class="modal-close" onclick="closeModal('modal-mesa')">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-mesa-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-mesa')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Trasladar Mesa -->
+  <div class="modal-overlay" id="modal-trasladar">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Trasladar Mesa</h3>
+        <button class="modal-close" onclick="closeModal('modal-trasladar')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Pedido a trasladar</label>
+          <select id="trasladar-pedido" class="w-full"></select>
+        </div>
+        <div class="form-group">
+          <label>Mesa destino</label>
+          <select id="trasladar-mesa-destino" class="w-full"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-trasladar')">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="trasladarMesa()">Trasladar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nueva Reserva -->
+  <div class="modal-overlay" id="modal-reserva">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Nueva Reserva</h3>
+        <button class="modal-close" onclick="closeModal('modal-reserva')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Mesa</label>
+            <select id="reserva-mesa"></select>
+          </div>
+          <div class="form-group">
+            <label>Personas</label>
+            <input type="number" id="reserva-personas" min="1" value="2">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre cliente</label>
+            <input type="text" id="reserva-cliente-nombre" placeholder="Nombre">
+          </div>
+          <div class="form-group">
+            <label>Telefono</label>
+            <input type="text" id="reserva-cliente-telefono" placeholder="Telefono">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" id="reserva-fecha">
+          </div>
+          <div class="form-group">
+            <label>Hora</label>
+            <input type="time" id="reserva-hora">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notas</label>
+          <textarea id="reserva-notas" rows="2" placeholder="Notas adicionales"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-reserva')">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="crearReserva()">Crear Reserva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cambiar Estado Reserva -->
+  <div class="modal-overlay" id="modal-reserva-estado">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Cambiar Estado de Reserva</h3>
+        <button class="modal-close" onclick="closeModal('modal-reserva-estado')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="reserva-estado-id">
+        <div class="form-group">
+          <label>Nuevo estado</label>
+          <select id="reserva-nuevo-estado">
+            <option value="pendiente">Pendiente</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="en_mesa">En mesa</option>
+            <option value="completada">Completada</option>
+            <option value="cancelada">Cancelada</option>
+            <option value="no_show">No show</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-reserva-estado')">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="cambiarEstadoReserva()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Pedido -->
+  <div class="modal-overlay" id="modal-pedido">
+    <div class="modal" style="max-width:750px">
+      <div class="modal-header">
+        <h3>Nuevo Pedido</h3>
+        <button class="modal-close" onclick="closeModal('modal-pedido')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Mesa</label>
+          <select id="pedido-mesa"></select>
+        </div>
+        <hr style="margin:12px 0">
+        <h4 class="mb-2">Agregar items</h4>
+        <div class="item-row">
+          <div class="form-group">
+            <label>Plato</label>
+            <select id="pedido-item-plato"></select>
+          </div>
+          <div class="form-group" style="max-width:80px">
+            <label>Cant.</label>
+            <input type="number" id="pedido-item-cantidad" min="1" value="1">
+          </div>
+          <div class="form-group">
+            <label>Notas</label>
+            <input type="text" id="pedido-item-notas" placeholder="Sin cebolla...">
+          </div>
+          <div class="form-group">
+            <label>Modificadores</label>
+            <select id="pedido-item-mods" multiple style="min-height:38px"></select>
+          </div>
+          <button class="btn btn-success btn-sm" onclick="agregarItemPedido()">+</button>
+        </div>
+        <div class="items-list">
+          <table class="mini-table">
+            <thead><tr><th>Plato</th><th>Cant</th><th>Notas</th><th>Mods</th><th></th></tr></thead>
+            <tbody id="pedido-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-pedido')">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="crearPedido()">Crear Pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle Pedido -->
+  <div class="modal-overlay" id="modal-pedido-detalle">
+    <div class="modal" style="max-width:700px">
+      <div class="modal-header">
+        <h3>Detalle del Pedido</h3>
+        <button class="modal-close" onclick="closeModal('modal-pedido-detalle')">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-pedido-detalle-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-pedido-detalle')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Plato -->
+  <div class="modal-overlay" id="modal-plato">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-plato-titulo">Nuevo Plato</h3>
+        <button class="modal-close" onclick="closeModal('modal-plato')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="plato-id">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="plato-nombre">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoria</label>
+            <select id="plato-categoria"></select>
+          </div>
+          <div class="form-group">
+            <label>Precio</label>
+            <input type="number" id="plato-precio" step="100">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripcion</label>
+          <textarea id="plato-descripcion" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Disponible</label>
+            <select id="plato-disponible">
+              <option value="1">Si</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Agotado</label>
+            <select id="plato-agotado">
+              <option value="0">No</option>
+              <option value="1">Si</option>
+            </select>
+          </div>
+        </div>
+        <!-- Recetas -->
+        <div id="plato-recetas-section" class="hidden mt-4">
+          <h4 class="mb-2">Recetas (Insumos)</h4>
+          <div class="table-responsive">
+            <table class="mini-table">
+              <thead><tr><th>Insumo</th><th>Cantidad</th><th></th></tr></thead>
+              <tbody id="plato-recetas-tbody"></tbody>
+            </table>
+          </div>
+          <div class="item-row mt-2">
+            <div class="form-group">
+              <select id="receta-insumo"></select>
+            </div>
+            <div class="form-group" style="max-width:100px">
+              <input type="number" id="receta-cantidad" step="0.01" placeholder="Cant.">
+            </div>
+            <button class="btn btn-success btn-sm" onclick="agregarReceta()">+ Receta</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-plato')">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="guardarPlato()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Insumo -->
+  <div class="modal-overlay" id="modal-insumo">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-insumo-titulo">Nuevo Insumo</h3>
+        <button class="modal-close" onclick="closeModal('modal-insumo')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="insumo-id">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="insumo-nombre">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Unidad</label>
+            <input type="text" id="insumo-unidad" placeholder="kg, lt, unidad...">
+          </div>
+          <div class="form-group">
+            <label>Stock actual</label>
+            <input type="number" id="insumo-stock" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Stock minimo</label>
+            <input type="number" id="insumo-stock-min" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-insumo')">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="guardarInsumo()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Generar Factura -->
+  <div class="modal-overlay" id="modal-factura">
+    <div class="modal" style="max-width:700px">
+      <div class="modal-header">
+        <h3>Generar Factura</h3>
+        <button class="modal-close" onclick="closeModal('modal-factura')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Seleccionar Pedido</label>
+          <select id="factura-pedido" onchange="previewCuenta()"></select>
+        </div>
+        <div id="factura-preview" class="hidden">
+          <div class="preview-box" id="factura-preview-box"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Metodo de pago</label>
+              <select id="factura-metodo">
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="mixto">Mixto</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Propina</label>
+              <input type="number" id="factura-propina" step="100" value="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Monto efectivo</label>
+              <input type="number" id="factura-monto-efectivo" step="100" value="0">
+            </div>
+            <div class="form-group">
+              <label>Monto tarjeta</label>
+              <input type="number" id="factura-monto-tarjeta" step="100" value="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Division (# cuentas)</label>
+              <input type="number" id="factura-division" min="1" value="1">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>NIT Cliente</label>
+              <input type="text" id="factura-nit" placeholder="Opcional">
+            </div>
+            <div class="form-group">
+              <label>Razon social</label>
+              <input type="text" id="factura-razon" placeholder="Opcional">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-factura')">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="generarFactura()">Generar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle Factura -->
+  <div class="modal-overlay" id="modal-factura-detalle">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Detalle de Factura</h3>
+        <button class="modal-close" onclick="closeModal('modal-factura-detalle')">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-factura-detalle-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-factura-detalle')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Despacho -->
+  <div class="modal-overlay" id="modal-despacho">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Nuevo Despacho</h3>
+        <button class="modal-close" onclick="closeModal('modal-despacho')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Pedido (con platos listos)</label>
+          <select id="despacho-pedido"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-despacho')">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="crearDespacho()">Crear Despacho</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <script src="/js/api.js"></script>
+  <script>
+    // ============================================================
+    // AUTH CHECK
+    // ============================================================
+    const currentUser = API.checkAuth(['administrador']);
+    if (!currentUser) throw new Error('No autorizado');
+
+    document.getElementById('sidebar-user').textContent = currentUser.nombre || currentUser.username;
+    document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    // ============================================================
+    // NAVIGATION
+    // ============================================================
+    const sectionTitles = {
+      dashboard: 'Dashboard',
+      mesas: 'Mesas',
+      reservas: 'Reservas',
+      pedidos: 'Pedidos',
+      cocina: 'Cocina',
+      menu: 'Menu',
+      facturacion: 'Facturacion',
+      caja: 'Caja',
+      reportes: 'Reportes',
+      despachos: 'Despachos',
+      usuarios: 'Usuarios'
+    };
+
+    const sectionLoaders = {
+      dashboard: loadDashboard,
+      mesas: loadMesas,
+      reservas: loadReservas,
+      pedidos: loadPedidos,
+      cocina: loadCocina,
+      menu: loadMenuPlatos,
+      facturacion: loadFacturas,
+      caja: loadCajaResumen,
+      reportes: loadReportesInicial,
+      despachos: loadDespachos,
+      usuarios: loadUsuarios
+    };
+
+    document.getElementById('sidebar-nav').addEventListener('click', (e) => {
+      const link = e.target.closest('a[data-section]');
+      if (!link) return;
+      e.preventDefault();
+      const sec = link.dataset.section;
+
+      // Update active nav
+      document.querySelectorAll('#sidebar-nav a').forEach(a => a.classList.remove('active'));
+      link.classList.add('active');
+
+      // Show section
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('sec-' + sec).classList.add('active');
+      document.getElementById('topbar-title').textContent = sectionTitles[sec] || sec;
+
+      // Load data
+      if (sectionLoaders[sec]) sectionLoaders[sec]();
+
+      // Close sidebar on mobile
+      document.querySelector('.sidebar').classList.remove('open');
+    });
+
+    // Init tabs
+    initTabs();
+    document.addEventListener('tab:shown', (e) => {
+      if (e.detail.tab === 'tab-rep-auditoria') loadRepAuditoria();
+    });
+
+    function loadReportesInicial() {
+      if (document.getElementById('tab-rep-auditoria').classList.contains('active')) {
+        loadRepAuditoria();
+      }
+    }
+
+    // ============================================================
+    // DASHBOARD
+    // ============================================================
+    let dashboardInterval = null;
+
+    async function loadDashboard() {
+      try {
+        const data = await API.get('/reportes/estadisticas');
+        const stats = data.data || data;
+        const grid = document.getElementById('dashboard-stats');
+        grid.innerHTML = `
+          <div class="stat-card">
+            <div class="stat-icon blue">&#9728;</div>
+            <div class="stat-info"><h3>${stats.reservas_hoy ?? 0}</h3><p>Reservas hoy</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">&#9832;</div>
+            <div class="stat-info"><h3>${stats.platos_pendientes ?? 0}</h3><p>Platos pendientes</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon cyan">&#10148;</div>
+            <div class="stat-info"><h3>${stats.despachos_activos ?? 0}</h3><p>Despachos activos</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">&#9638;</div>
+            <div class="stat-info"><h3>${stats.mesas_ocupadas ?? 0}</h3><p>Mesas ocupadas</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">&#9638;</div>
+            <div class="stat-info"><h3>${stats.mesas_reservadas ?? 0}</h3><p>Mesas reservadas</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">&#9733;</div>
+            <div class="stat-info"><h3>${formatMoney(stats.ventas_hoy ?? 0)}</h3><p>Ventas hoy</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">&#9997;</div>
+            <div class="stat-info"><h3>${stats.pedidos_abiertos ?? 0}</h3><p>Pedidos abiertos</p></div>
+          </div>
+        `;
+        document.getElementById('dashboard-resumen').innerHTML = '<p class="text-gray">Estadisticas actualizadas: ' + new Date().toLocaleTimeString('es-CO') + '</p>';
+      } catch (err) {
+        Toast.error('Error cargando dashboard: ' + err.message);
+      }
+    }
+
+    // Auto-refresh dashboard every 30 seconds
+    function startDashboardRefresh() {
+      if (dashboardInterval) clearInterval(dashboardInterval);
+      dashboardInterval = setInterval(() => {
+        if (document.getElementById('sec-dashboard').classList.contains('active')) {
+          loadDashboard();
+        }
+      }, 30000);
+    }
+
+    // ============================================================
+    // MESAS
+    // ============================================================
+    let mesasList = [];
+    let meserosList = [];
+
+    async function loadMesas() {
+      try {
+        const data = await API.get('/mesas');
+        mesasList = data.data || data;
+        const grid = document.getElementById('mesas-grid');
+        grid.innerHTML = mesasList.map(m => `
+          <div class="mesa-card ${m.estado}" onclick="verMesa(${m.id})">
+            <div class="mesa-numero">#${m.numero}</div>
+            <div class="mesa-capacidad">${m.capacidad} personas</div>
+            <div class="mesa-estado">${m.estado}</div>
+            <div class="mesa-mesero">${m.mesero_nombre || 'Sin mesero'}</div>
+          </div>
+        `).join('');
+
+        // Preload meseros
+        try {
+          const mData = await API.get('/usuarios/meseros');
+          meserosList = mData.data || mData;
+        } catch(e) { meserosList = []; }
+      } catch (err) {
+        Toast.error('Error cargando mesas: ' + err.message);
+      }
+    }
+
+    async function verMesa(id) {
+      const mesa = mesasList.find(m => m.id === id);
+      if (!mesa) return;
+
+      const meserosOptions = meserosList.map(m => `<option value="${m.id}" ${m.id === mesa.mesero_id ? 'selected' : ''}>${m.nombre || m.username}</option>`).join('');
+
+      document.getElementById('modal-mesa-body').innerHTML = `
+        <div class="mb-4">
+          <p><strong>Mesa #${mesa.numero}</strong></p>
+          <p>Capacidad: ${mesa.capacidad} personas</p>
+          <p>Estado: ${estadoBadge(mesa.estado)}</p>
+          <p>Mesero: ${mesa.mesero_nombre || 'Sin asignar'}</p>
+        </div>
+        <div class="form-group">
+          <label>Cambiar estado</label>
+          <select id="mesa-cambiar-estado">
+            <option value="disponible" ${mesa.estado === 'disponible' ? 'selected' : ''}>Disponible</option>
+            <option value="reservada" ${mesa.estado === 'reservada' ? 'selected' : ''}>Reservada</option>
+            <option value="ocupada" ${mesa.estado === 'ocupada' ? 'selected' : ''}>Ocupada</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Asignar mesero</label>
+          <select id="mesa-asignar-mesero">
+            <option value="">Sin mesero</option>
+            ${meserosOptions}
+          </select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="actualizarMesa(${mesa.id})">Guardar cambios</button>
+      `;
+      openModal('modal-mesa');
+    }
+
+    async function actualizarMesa(id) {
+      try {
+        const estado = document.getElementById('mesa-cambiar-estado').value;
+        const mesero_id = document.getElementById('mesa-asignar-mesero').value || null;
+        await API.put('/mesas/' + id, { estado, mesero_id });
+        Toast.success('Mesa actualizada');
+        closeModal('modal-mesa');
+        loadMesas();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function trasladarMesa() {
+      try {
+        const pedido_id = document.getElementById('trasladar-pedido').value;
+        const mesa_destino_id = document.getElementById('trasladar-mesa-destino').value;
+        if (!pedido_id || !mesa_destino_id) { Toast.error('Seleccione pedido y mesa destino'); return; }
+        await API.put('/mesas/trasladar', { pedido_id: parseInt(pedido_id), mesa_destino_id: parseInt(mesa_destino_id) });
+        Toast.success('Mesa trasladada exitosamente');
+        closeModal('modal-trasladar');
+        loadMesas();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // Populate trasladar modal selects when opened
+    async function loadTrasladarOptions() {
+      try {
+        const [pedidosData, mesasData] = await Promise.all([API.get('/pedidos'), API.get('/mesas')]);
+        const pedidos = pedidosData.data || pedidosData;
+        const mesas = mesasData.data || mesasData;
+
+        document.getElementById('trasladar-pedido').innerHTML = '<option value="">Seleccione pedido</option>' +
+          (Array.isArray(pedidos) ? pedidos : []).filter(p => p.estado === 'abierto' || p.estado === 'en_preparacion')
+            .map(p => `<option value="${p.id}">Pedido #${p.id} - Mesa #${p.mesa_numero || p.mesa_id}</option>`).join('');
+
+        document.getElementById('trasladar-mesa-destino').innerHTML = '<option value="">Seleccione mesa</option>' +
+          (Array.isArray(mesas) ? mesas : []).filter(m => m.estado === 'disponible')
+            .map(m => `<option value="${m.id}">Mesa #${m.numero} (${m.capacidad} pers.)</option>`).join('');
+      } catch (err) {
+        Toast.error('Error cargando opciones: ' + err.message);
+      }
+    }
+
+    // Override openModal for trasladar to preload
+    const _origOpenModal = openModal;
+    openModal = function(id) {
+      _origOpenModal(id);
+      if (id === 'modal-trasladar') loadTrasladarOptions();
+    };
+
+    // ============================================================
+    // RESERVAS
+    // ============================================================
+    async function loadReservas() {
+      try {
+        const fecha = document.getElementById('filtro-reserva-fecha').value;
+        const estado = document.getElementById('filtro-reserva-estado').value;
+        let url = '/reservas?';
+        if (fecha) url += 'fecha=' + fecha + '&';
+        if (estado) url += 'estado=' + estado;
+        const data = await API.get(url);
+        const reservas = data.data || data;
+        const tbody = document.getElementById('reservas-tbody');
+        tbody.innerHTML = (Array.isArray(reservas) ? reservas : []).map(r => `
+          <tr>
+            <td>${r.id}</td>
+            <td>#${r.mesa_numero || r.mesa_id}</td>
+            <td>${r.cliente_nombre || ''}<br><small class="text-gray">${r.cliente_telefono || ''}</small></td>
+            <td>${r.personas}</td>
+            <td>${formatDate(r.fecha)}</td>
+            <td>${formatTime(r.hora)}</td>
+            <td>${estadoBadge(r.estado)}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="abrirCambiarEstadoReserva(${r.id}, '${r.estado}')">Cambiar estado</button>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="8" class="text-center text-gray">No hay reservas</td></tr>';
+      } catch (err) {
+        Toast.error('Error cargando reservas: ' + err.message);
+      }
+    }
+
+    function abrirCambiarEstadoReserva(id, estadoActual) {
+      document.getElementById('reserva-estado-id').value = id;
+      document.getElementById('reserva-nuevo-estado').value = estadoActual;
+      openModal('modal-reserva-estado');
+    }
+
+    async function cambiarEstadoReserva() {
+      try {
+        const id = document.getElementById('reserva-estado-id').value;
+        const estado = document.getElementById('reserva-nuevo-estado').value;
+        await API.put('/reservas/' + id + '/estado', { estado });
+        Toast.success('Estado actualizado');
+        closeModal('modal-reserva-estado');
+        loadReservas();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function openModalNuevaReserva() {
+      try {
+        const data = await API.get('/mesas');
+        const mesas = data.data || data;
+        document.getElementById('reserva-mesa').innerHTML = (Array.isArray(mesas) ? mesas : [])
+          .map(m => `<option value="${m.id}">Mesa #${m.numero} (${m.capacidad} pers.)</option>`).join('');
+        document.getElementById('reserva-fecha').value = new Date().toISOString().split('T')[0];
+        document.getElementById('reserva-hora').value = '19:00';
+        document.getElementById('reserva-cliente-nombre').value = '';
+        document.getElementById('reserva-cliente-telefono').value = '';
+        document.getElementById('reserva-personas').value = 2;
+        document.getElementById('reserva-notas').value = '';
+        openModal('modal-reserva');
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function crearReserva() {
+      try {
+        const body = {
+          mesa_id: parseInt(document.getElementById('reserva-mesa').value),
+          cliente_nombre: document.getElementById('reserva-cliente-nombre').value.trim(),
+          cliente_telefono: document.getElementById('reserva-cliente-telefono').value.trim(),
+          personas: parseInt(document.getElementById('reserva-personas').value),
+          fecha: document.getElementById('reserva-fecha').value,
+          hora: document.getElementById('reserva-hora').value,
+          notas: document.getElementById('reserva-notas').value.trim()
+        };
+        if (!body.cliente_nombre) { Toast.error('Ingrese nombre del cliente'); return; }
+        if (!body.fecha || !body.hora) { Toast.error('Ingrese fecha y hora'); return; }
+        await API.post('/reservas', body);
+        Toast.success('Reserva creada');
+        closeModal('modal-reserva');
+        loadReservas();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // Calendario
+    async function loadCalendario() {
+      try {
+        let inicio = document.getElementById('cal-inicio').value;
+        let fin = document.getElementById('cal-fin').value;
+        if (!inicio) {
+          const today = new Date();
+          const dayOfWeek = today.getDay();
+          const monday = new Date(today);
+          monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+          inicio = monday.toISOString().split('T')[0];
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          fin = sunday.toISOString().split('T')[0];
+          document.getElementById('cal-inicio').value = inicio;
+          document.getElementById('cal-fin').value = fin;
+        }
+        const data = await API.get('/reservas/calendario?inicio=' + inicio + '&fin=' + fin);
+        const reservas = data.data || data;
+        renderCalendario(reservas, inicio, fin);
+      } catch (err) {
+        Toast.error('Error cargando calendario: ' + err.message);
+      }
+    }
+
+    function renderCalendario(reservas, inicio, fin) {
+      const container = document.getElementById('calendario-container');
+      const startDate = new Date(inicio + 'T00:00:00');
+      const endDate = new Date(fin + 'T00:00:00');
+      const days = [];
+      const d = new Date(startDate);
+      while (d <= endDate) {
+        days.push(new Date(d));
+        d.setDate(d.getDate() + 1);
+      }
+      const cols = days.length;
+      const hours = [];
+      for (let h = 10; h <= 22; h++) hours.push(h);
+
+      const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+      let html = `<div class="calendario-grid" style="--cols:${cols}">`;
+      // Header row
+      html += '<div class="calendario-header"></div>';
+      days.forEach(day => {
+        html += `<div class="calendario-header">${dayNames[day.getDay()]}<br>${day.getDate()}/${day.getMonth()+1}</div>`;
+      });
+
+      // Time rows
+      hours.forEach(hour => {
+        html += `<div class="calendario-hora">${String(hour).padStart(2,'0')}:00</div>`;
+        days.forEach(day => {
+          const dateStr = day.toISOString().split('T')[0];
+          const cellReservas = (Array.isArray(reservas) ? reservas : []).filter(r => {
+            const rFecha = (r.fecha || '').substring(0, 10);
+            const rHora = parseInt((r.hora || '').substring(0, 2));
+            return rFecha === dateStr && rHora === hour;
+          });
+          html += '<div class="calendario-celda">';
+          cellReservas.forEach(r => {
+            html += `<div class="reserva-chip" title="Mesa #${r.mesa_numero || r.mesa_id} - ${r.cliente_nombre}">${r.cliente_nombre || 'Reserva'} M${r.mesa_numero || r.mesa_id}</div>`;
+          });
+          html += '</div>';
+        });
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // ============================================================
+    // PEDIDOS
+    // ============================================================
+    let pedidoItems = [];
+    let platosList = [];
+    let modsList = [];
+
+    async function loadPedidos() {
+      try {
+        const data = await API.get('/pedidos');
+        const pedidos = data.data || data;
+        const tbody = document.getElementById('pedidos-tbody');
+        tbody.innerHTML = (Array.isArray(pedidos) ? pedidos : []).map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>#${p.mesa_numero || p.mesa_id}</td>
+            <td>${p.mesero_nombre || p.mesero_id || ''}</td>
+            <td>${estadoBadge(p.estado)}</td>
+            <td>${formatDateTime(p.created_at || p.fecha)}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="verPedido(${p.id})">Ver</button>
+              <button class="btn btn-info btn-sm" onclick="cambiarEstadoPedido(${p.id}, '${p.estado}')">Estado</button>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="6" class="text-center text-gray">No hay pedidos</td></tr>';
+      } catch (err) {
+        Toast.error('Error cargando pedidos: ' + err.message);
+      }
+    }
+
+    async function verPedido(id) {
+      try {
+        const data = await API.get('/pedidos/' + id);
+        const pedido = data.data || data;
+        const items = pedido.items || pedido.detalles || [];
+        document.getElementById('modal-pedido-detalle-body').innerHTML = `
+          <div class="mb-4">
+            <p><strong>Pedido #${pedido.id}</strong> - Mesa #${pedido.mesa_numero || pedido.mesa_id}</p>
+            <p>Mesero: ${pedido.mesero_nombre || ''} | Estado: ${estadoBadge(pedido.estado)}</p>
+            <p>Fecha: ${formatDateTime(pedido.created_at || pedido.fecha)}</p>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr><th>Plato</th><th>Cant.</th><th>P. Unit.</th><th>Notas</th><th>Mods</th><th>Estado</th><th>Cuenta</th><th>Acc.</th></tr></thead>
+              <tbody>
+                ${items.map(it => `
+                  <tr>
+                    <td>${it.plato_nombre || it.nombre || ''}</td>
+                    <td>${it.cantidad}</td>
+                    <td>${formatMoney(it.precio_unitario || 0)}</td>
+                    <td>${it.notas || ''}</td>
+                    <td>${(it.modificadores || []).map(m => typeof m === 'string' ? m : m.nombre).join(', ') || ''}</td>
+                    <td>${estadoBadge(it.estado || 'pendiente')}</td>
+                    <td>${it.cuenta_numero || 1}</td>
+                    <td><button class="btn btn-outline btn-sm" onclick="dividirCuenta(${it.id})">Dividir</button></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        openModal('modal-pedido-detalle');
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function cambiarEstadoPedido(id, estadoActual) {
+      const estados = ['abierto', 'en_preparacion', 'listo', 'entregado', 'cerrado', 'cancelado'];
+      const idx = estados.indexOf(estadoActual);
+      const siguiente = estados[idx + 1] || estados[0];
+      const nuevoEstado = prompt('Nuevo estado para pedido #' + id + ':\n(' + estados.join(', ') + ')', siguiente);
+      if (!nuevoEstado) return;
+      try {
+        await API.put('/pedidos/' + id + '/estado', { estado: nuevoEstado });
+        Toast.success('Estado del pedido actualizado');
+        loadPedidos();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function dividirCuenta(detalleId) {
+      const cuenta = prompt('Numero de cuenta destino:', '2');
+      if (!cuenta) return;
+      try {
+        await API.put('/pedidos/detalle/' + detalleId + '/dividir-cuenta', { cuenta_numero: parseInt(cuenta) });
+        Toast.success('Item movido a cuenta #' + cuenta);
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function openModalNuevoPedido() {
+      try {
+        const [mesasData, platosData, modsData] = await Promise.all([
+          API.get('/mesas'),
+          API.get('/menu/platos'),
+          API.get('/menu/modificadores')
+        ]);
+        const mesas = mesasData.data || mesasData;
+        platosList = platosData.data || platosData;
+        modsList = modsData.data || modsData;
+        pedidoItems = [];
+
+        document.getElementById('pedido-mesa').innerHTML = (Array.isArray(mesas) ? mesas : [])
+          .map(m => `<option value="${m.id}">Mesa #${m.numero}</option>`).join('');
+        document.getElementById('pedido-item-plato').innerHTML = (Array.isArray(platosList) ? platosList : [])
+          .filter(p => p.disponible !== false && p.disponible !== 0)
+          .map(p => `<option value="${p.id}">${p.nombre} - ${formatMoney(p.precio)}</option>`).join('');
+        document.getElementById('pedido-item-mods').innerHTML = (Array.isArray(modsList) ? modsList : [])
+          .map(m => `<option value="${m.id}">${m.nombre} (+${formatMoney(m.precio_extra || 0)})</option>`).join('');
+
+        document.getElementById('pedido-item-cantidad').value = 1;
+        document.getElementById('pedido-item-notas').value = '';
+        document.getElementById('pedido-items-tbody').innerHTML = '';
+        openModal('modal-pedido');
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    function agregarItemPedido() {
+      const platoId = parseInt(document.getElementById('pedido-item-plato').value);
+      const cantidad = parseInt(document.getElementById('pedido-item-cantidad').value) || 1;
+      const notas = document.getElementById('pedido-item-notas').value.trim();
+      const modSelect = document.getElementById('pedido-item-mods');
+      const modificadores = Array.from(modSelect.selectedOptions).map(o => parseInt(o.value));
+
+      const plato = platosList.find(p => p.id === platoId);
+      if (!plato) { Toast.error('Seleccione un plato'); return; }
+
+      const modNames = modificadores.map(mid => {
+        const m = modsList.find(x => x.id === mid);
+        return m ? m.nombre : mid;
+      });
+
+      pedidoItems.push({ plato_id: platoId, plato_nombre: plato.nombre, cantidad, notas, modificadores, modNames });
+      renderPedidoItems();
+
+      document.getElementById('pedido-item-cantidad').value = 1;
+      document.getElementById('pedido-item-notas').value = '';
+      modSelect.selectedIndex = -1;
+    }
+
+    function renderPedidoItems() {
+      document.getElementById('pedido-items-tbody').innerHTML = pedidoItems.map((it, i) => `
+        <tr>
+          <td>${it.plato_nombre}</td>
+          <td>${it.cantidad}</td>
+          <td>${it.notas || ''}</td>
+          <td>${it.modNames.join(', ')}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="pedidoItems.splice(${i},1);renderPedidoItems();">&times;</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function crearPedido() {
+      try {
+        const mesa_id = parseInt(document.getElementById('pedido-mesa').value);
+        if (!mesa_id) { Toast.error('Seleccione una mesa'); return; }
+        if (pedidoItems.length === 0) { Toast.error('Agregue al menos un item'); return; }
+        const items = pedidoItems.map(it => ({
+          plato_id: it.plato_id,
+          cantidad: it.cantidad,
+          notas: it.notas,
+          modificadores: it.modificadores
+        }));
+        await API.post('/pedidos', { mesa_id, items });
+        Toast.success('Pedido creado exitosamente');
+        closeModal('modal-pedido');
+        loadPedidos();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // MENU
+    // ============================================================
+    let categoriasList = [];
+    let insumosList = [];
+
+    async function loadMenuPlatos() {
+      try {
+        const [platosData, catsData] = await Promise.all([
+          API.get('/menu/platos'),
+          API.get('/menu/categorias')
+        ]);
+        const platos = platosData.data || platosData;
+        categoriasList = catsData.data || catsData;
+
+        document.getElementById('platos-tbody').innerHTML = (Array.isArray(platos) ? platos : []).map(p => `
+          <tr>
+            <td>${p.nombre}</td>
+            <td>${p.categoria_nombre || p.categoria_id || ''}</td>
+            <td>${formatMoney(p.precio)}</td>
+            <td>${p.disponible ? '<span class="badge badge-success">Si</span>' : '<span class="badge badge-gray">No</span>'}</td>
+            <td>${p.agotado ? '<span class="badge badge-danger">Si</span>' : '<span class="badge badge-success">No</span>'}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="editarPlato(${p.id})">Editar</button>
+              <button class="btn btn-danger btn-sm" onclick="eliminarPlato(${p.id})">Eliminar</button>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="6" class="text-center text-gray">No hay platos</td></tr>';
+
+        // Also load categorias tab
+        document.getElementById('categorias-tbody').innerHTML = (Array.isArray(categoriasList) ? categoriasList : []).map(c => `
+          <tr><td>${c.id}</td><td>${c.nombre}</td></tr>
+        `).join('');
+
+        // Load modificadores
+        loadModificadores();
+        // Load insumos
+        loadInsumos();
+      } catch (err) {
+        Toast.error('Error cargando menu: ' + err.message);
+      }
+    }
+
+    async function loadModificadores() {
+      try {
+        const data = await API.get('/menu/modificadores');
+        const mods = data.data || data;
+        document.getElementById('modificadores-tbody').innerHTML = (Array.isArray(mods) ? mods : []).map(m => `
+          <tr><td>${m.id}</td><td>${m.nombre}</td><td>${formatMoney(m.precio_extra || 0)}</td></tr>
+        `).join('');
+      } catch(e) {}
+    }
+
+    async function loadInsumos() {
+      try {
+        const data = await API.get('/menu/insumos');
+        insumosList = data.data || data;
+        document.getElementById('insumos-tbody').innerHTML = (Array.isArray(insumosList) ? insumosList : []).map(ins => `
+          <tr>
+            <td>${ins.id}</td>
+            <td>${ins.nombre}</td>
+            <td>${ins.unidad || ''}</td>
+            <td>${ins.stock ?? ''}</td>
+            <td>${ins.stock_minimo ?? ''}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="editarInsumo(${ins.id})">Editar</button></td>
+          </tr>
+        `).join('');
+      } catch(e) {}
+    }
+
+    async function crearCategoria() {
+      const nombre = document.getElementById('input-cat-nombre').value.trim();
+      if (!nombre) { Toast.error('Ingrese nombre de categoria'); return; }
+      try {
+        await API.post('/menu/categorias', { nombre });
+        Toast.success('Categoria creada');
+        document.getElementById('input-cat-nombre').value = '';
+        loadMenuPlatos();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function crearModificador() {
+      const nombre = document.getElementById('input-mod-nombre').value.trim();
+      const precio_extra = parseFloat(document.getElementById('input-mod-precio').value) || 0;
+      if (!nombre) { Toast.error('Ingrese nombre del modificador'); return; }
+      try {
+        await API.post('/menu/modificadores', { nombre, precio_extra });
+        Toast.success('Modificador creado');
+        document.getElementById('input-mod-nombre').value = '';
+        document.getElementById('input-mod-precio').value = '0';
+        loadModificadores();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    function openModalPlato(platoData = null) {
+      document.getElementById('modal-plato-titulo').textContent = platoData ? 'Editar Plato' : 'Nuevo Plato';
+      document.getElementById('plato-id').value = platoData ? platoData.id : '';
+      document.getElementById('plato-nombre').value = platoData ? platoData.nombre : '';
+      document.getElementById('plato-precio').value = platoData ? platoData.precio : '';
+      document.getElementById('plato-descripcion').value = platoData ? (platoData.descripcion || '') : '';
+      document.getElementById('plato-disponible').value = platoData ? (platoData.disponible ? '1' : '0') : '1';
+      document.getElementById('plato-agotado').value = platoData ? (platoData.agotado ? '1' : '0') : '0';
+
+      document.getElementById('plato-categoria').innerHTML = (Array.isArray(categoriasList) ? categoriasList : [])
+        .map(c => `<option value="${c.id}" ${platoData && platoData.categoria_id === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('');
+
+      // Recetas section
+      const recetasSection = document.getElementById('plato-recetas-section');
+      if (platoData && platoData.id) {
+        recetasSection.classList.remove('hidden');
+        loadRecetas(platoData.id);
+        // Populate insumo select
+        document.getElementById('receta-insumo').innerHTML = '<option value="">Seleccionar insumo</option>' +
+          (Array.isArray(insumosList) ? insumosList : []).map(ins => `<option value="${ins.id}">${ins.nombre} (${ins.unidad || ''})</option>`).join('');
+      } else {
+        recetasSection.classList.add('hidden');
+      }
+      _origOpenModal('modal-plato');
+    }
+
+    async function editarPlato(id) {
+      try {
+        const data = await API.get('/menu/platos');
+        const platos = data.data || data;
+        const plato = (Array.isArray(platos) ? platos : []).find(p => p.id === id);
+        if (plato) openModalPlato(plato);
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function guardarPlato() {
+      try {
+        const id = document.getElementById('plato-id').value;
+        const body = {
+          nombre: document.getElementById('plato-nombre').value.trim(),
+          categoria_id: parseInt(document.getElementById('plato-categoria').value),
+          precio: parseFloat(document.getElementById('plato-precio').value),
+          descripcion: document.getElementById('plato-descripcion').value.trim(),
+          disponible: document.getElementById('plato-disponible').value === '1',
+          agotado: document.getElementById('plato-agotado').value === '1'
+        };
+        if (!body.nombre) { Toast.error('Ingrese nombre del plato'); return; }
+        if (id) {
+          await API.put('/menu/platos/' + id, body);
+          Toast.success('Plato actualizado');
+        } else {
+          await API.post('/menu/platos', body);
+          Toast.success('Plato creado');
+        }
+        closeModal('modal-plato');
+        loadMenuPlatos();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function eliminarPlato(id) {
+      if (!confirm('Eliminar este plato?')) return;
+      try {
+        await API.delete('/menu/platos/' + id);
+        Toast.success('Plato eliminado');
+        loadMenuPlatos();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function loadRecetas(platoId) {
+      try {
+        const data = await API.get('/menu/recetas/' + platoId);
+        const recetas = data.data || data;
+        document.getElementById('plato-recetas-tbody').innerHTML = (Array.isArray(recetas) ? recetas : []).map(r => `
+          <tr>
+            <td>${r.insumo_nombre || r.insumo_id}</td>
+            <td>${r.cantidad} ${r.unidad || ''}</td>
+            <td></td>
+          </tr>
+        `).join('') || '<tr><td colspan="3" class="text-gray">Sin recetas</td></tr>';
+      } catch(e) {
+        document.getElementById('plato-recetas-tbody').innerHTML = '<tr><td colspan="3" class="text-gray">Sin recetas</td></tr>';
+      }
+    }
+
+    async function agregarReceta() {
+      const platoId = document.getElementById('plato-id').value;
+      const insumo_id = parseInt(document.getElementById('receta-insumo').value);
+      const cantidad = parseFloat(document.getElementById('receta-cantidad').value);
+      if (!platoId || !insumo_id || !cantidad) { Toast.error('Complete insumo y cantidad'); return; }
+      try {
+        await API.post('/menu/recetas', { plato_id: parseInt(platoId), insumo_id, cantidad });
+        Toast.success('Receta agregada');
+        document.getElementById('receta-cantidad').value = '';
+        loadRecetas(platoId);
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    function openModalInsumo(insumoData = null) {
+      document.getElementById('modal-insumo-titulo').textContent = insumoData ? 'Editar Insumo' : 'Nuevo Insumo';
+      document.getElementById('insumo-id').value = insumoData ? insumoData.id : '';
+      document.getElementById('insumo-nombre').value = insumoData ? insumoData.nombre : '';
+      document.getElementById('insumo-unidad').value = insumoData ? (insumoData.unidad || '') : '';
+      document.getElementById('insumo-stock').value = insumoData ? (insumoData.stock ?? '') : '';
+      document.getElementById('insumo-stock-min').value = insumoData ? (insumoData.stock_minimo ?? '') : '';
+      _origOpenModal('modal-insumo');
+    }
+
+    async function editarInsumo(id) {
+      const insumo = insumosList.find(i => i.id === id);
+      if (insumo) openModalInsumo(insumo);
+    }
+
+    async function guardarInsumo() {
+      try {
+        const id = document.getElementById('insumo-id').value;
+        const body = {
+          nombre: document.getElementById('insumo-nombre').value.trim(),
+          unidad: document.getElementById('insumo-unidad').value.trim(),
+          stock: parseFloat(document.getElementById('insumo-stock').value) || 0,
+          stock_minimo: parseFloat(document.getElementById('insumo-stock-min').value) || 0
+        };
+        if (!body.nombre) { Toast.error('Ingrese nombre del insumo'); return; }
+        if (id) {
+          await API.put('/menu/insumos/' + id, body);
+          Toast.success('Insumo actualizado');
+        } else {
+          await API.post('/menu/insumos', body);
+          Toast.success('Insumo creado');
+        }
+        closeModal('modal-insumo');
+        loadInsumos();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // FACTURACION
+    // ============================================================
+    async function loadFacturas() {
+      try {
+        const data = await API.get('/facturacion');
+        const facturas = data.data || data;
+        document.getElementById('facturas-tbody').innerHTML = (Array.isArray(facturas) ? facturas : []).map(f => `
+          <tr>
+            <td>${f.consecutivo || f.id}</td>
+            <td>#${f.mesa_numero || f.mesa_id || ''}</td>
+            <td>${f.mesero_nombre || ''}</td>
+            <td>${formatMoney(f.subtotal || 0)}</td>
+            <td>${formatMoney(f.impuesto || 0)}</td>
+            <td>${formatMoney(f.total || 0)}</td>
+            <td>${f.metodo_pago || ''}</td>
+            <td>${estadoBadge(f.estado || 'pagada')}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="verFactura(${f.id})">Ver</button>
+              <button class="btn btn-danger btn-sm" onclick="anularFactura(${f.id})">Anular</button>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="9" class="text-center text-gray">No hay facturas</td></tr>';
+      } catch (err) {
+        Toast.error('Error cargando facturas: ' + err.message);
+      }
+    }
+
+    async function verFactura(id) {
+      try {
+        const data = await API.get('/facturacion/' + id);
+        const f = data.data || data;
+        const items = f.items || f.detalles || [];
+        document.getElementById('modal-factura-detalle-body').innerHTML = `
+          <div class="preview-box">
+            <h4>Factura #${f.consecutivo || f.id}</h4>
+            <p>Mesa: #${f.mesa_numero || f.mesa_id || ''} | Mesero: ${f.mesero_nombre || ''}</p>
+            <p>Fecha: ${formatDateTime(f.created_at || f.fecha)}</p>
+            <p>Estado: ${estadoBadge(f.estado || 'pagada')}</p>
+            <p>Metodo: ${f.metodo_pago || ''}</p>
+            ${f.cliente_nit ? '<p>NIT: ' + f.cliente_nit + '</p>' : ''}
+            ${f.cliente_razon_social ? '<p>Razon social: ' + f.cliente_razon_social + '</p>' : ''}
+            <hr style="margin:8px 0">
+            ${items.map(it => `<div class="preview-line"><span>${it.plato_nombre || it.nombre || ''} x${it.cantidad}</span><span>${formatMoney(it.subtotal || (it.precio_unitario * it.cantidad) || 0)}</span></div>`).join('')}
+            <div class="preview-line total"><span>Subtotal</span><span>${formatMoney(f.subtotal || 0)}</span></div>
+            <div class="preview-line"><span>Impuesto</span><span>${formatMoney(f.impuesto || 0)}</span></div>
+            ${f.propina ? '<div class="preview-line"><span>Propina</span><span>' + formatMoney(f.propina) + '</span></div>' : ''}
+            <div class="preview-line total"><span>TOTAL</span><span>${formatMoney(f.total || 0)}</span></div>
+          </div>
+        `;
+        openModal('modal-factura-detalle');
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function anularFactura(id) {
+      if (!confirm('Anular esta factura? Esta accion es irreversible.')) return;
+      try {
+        await API.put('/facturacion/' + id + '/anular');
+        Toast.success('Factura anulada');
+        loadFacturas();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function openModalGenerarFactura() {
+      try {
+        const data = await API.get('/pedidos');
+        const pedidos = (data.data || data);
+        document.getElementById('factura-pedido').innerHTML = '<option value="">Seleccione un pedido</option>' +
+          (Array.isArray(pedidos) ? pedidos : [])
+            .filter(p => ['entregado', 'listo'].includes(p.estado))
+            .map(p => `<option value="${p.id}">Pedido #${p.id} - Mesa #${p.mesa_numero || p.mesa_id}</option>`).join('');
+        document.getElementById('factura-preview').classList.add('hidden');
+        document.getElementById('factura-propina').value = 0;
+        document.getElementById('factura-monto-efectivo').value = 0;
+        document.getElementById('factura-monto-tarjeta').value = 0;
+        document.getElementById('factura-division').value = 1;
+        document.getElementById('factura-nit').value = '';
+        document.getElementById('factura-razon').value = '';
+        _origOpenModal('modal-factura');
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function previewCuenta() {
+      const pedidoId = document.getElementById('factura-pedido').value;
+      if (!pedidoId) { document.getElementById('factura-preview').classList.add('hidden'); return; }
+      try {
+        const data = await API.get('/facturacion/cuenta/' + pedidoId);
+        const cuenta = data.data || data;
+        const items = cuenta.items || cuenta.detalles || [];
+        document.getElementById('factura-preview-box').innerHTML = `
+          <h4>Vista previa de cuenta</h4>
+          ${items.map(it => `<div class="preview-line"><span>${it.plato_nombre || it.nombre || ''} x${it.cantidad}</span><span>${formatMoney(it.subtotal || (it.precio_unitario * it.cantidad) || 0)}</span></div>`).join('')}
+          <div class="preview-line total"><span>Subtotal</span><span>${formatMoney(cuenta.subtotal || 0)}</span></div>
+          <div class="preview-line"><span>Impuesto</span><span>${formatMoney(cuenta.impuesto || 0)}</span></div>
+          <div class="preview-line total"><span>TOTAL</span><span>${formatMoney(cuenta.total || 0)}</span></div>
+        `;
+        document.getElementById('factura-preview').classList.remove('hidden');
+      } catch (err) {
+        Toast.error('Error cargando cuenta: ' + err.message);
+        document.getElementById('factura-preview').classList.add('hidden');
+      }
+    }
+
+    async function generarFactura() {
+      const pedido_id = parseInt(document.getElementById('factura-pedido').value);
+      if (!pedido_id) { Toast.error('Seleccione un pedido'); return; }
+      try {
+        const body = {
+          pedido_id,
+          metodo_pago: document.getElementById('factura-metodo').value,
+          propina: parseFloat(document.getElementById('factura-propina').value) || 0,
+          monto_efectivo: parseFloat(document.getElementById('factura-monto-efectivo').value) || 0,
+          monto_tarjeta: parseFloat(document.getElementById('factura-monto-tarjeta').value) || 0,
+          division: parseInt(document.getElementById('factura-division').value) || 1,
+          cliente_nit: document.getElementById('factura-nit').value.trim() || null,
+          cliente_razon_social: document.getElementById('factura-razon').value.trim() || null
+        };
+        await API.post('/facturacion/generar', body);
+        Toast.success('Factura generada exitosamente');
+        closeModal('modal-factura');
+        loadFacturas();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // CAJA
+    // ============================================================
+    async function loadCajaResumen() {
+      const fecha = document.getElementById('caja-fecha').value || new Date().toISOString().split('T')[0];
+      document.getElementById('caja-fecha').value = fecha;
+      try {
+        const data = await API.get('/caja/resumen-dia?fecha=' + fecha);
+        const dataResumen = data.data || data;
+        const resumen = dataResumen.resumen ? { ...dataResumen.resumen, facturas: dataResumen.facturas || [] } : dataResumen;
+        document.getElementById('caja-stats').innerHTML = `
+          <div class="stat-card">
+            <div class="stat-icon green">&#9733;</div>
+            <div class="stat-info"><h3>${formatMoney(resumen.total_ventas || resumen.total || 0)}</h3><p>Total ventas</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">&#9875;</div>
+            <div class="stat-info"><h3>${resumen.total_facturas || resumen.cantidad_facturas || 0}</h3><p>Facturas</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon cyan">&#10066;</div>
+            <div class="stat-info"><h3>${formatMoney(resumen.total_efectivo || 0)}</h3><p>Efectivo</p></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">&#10066;</div>
+            <div class="stat-info"><h3>${formatMoney(resumen.total_tarjeta || 0)}</h3><p>Tarjeta</p></div>
+          </div>
+        `;
+        const facturas = resumen.facturas || [];
+        document.getElementById('caja-facturas-tbody').innerHTML = (Array.isArray(facturas) ? facturas : []).map(f => `
+          <tr>
+            <td>${f.consecutivo || f.id}</td>
+            <td>${formatMoney(f.total || 0)}</td>
+            <td>${f.metodo_pago || ''}</td>
+            <td>${estadoBadge(f.estado || 'pagada')}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="4" class="text-center text-gray">Sin facturas</td></tr>';
+
+        // Load cierres
+        loadCierres();
+      } catch (err) {
+        Toast.error('Error cargando caja: ' + err.message);
+      }
+    }
+
+    async function loadCierres() {
+      try {
+        const data = await API.get('/caja/cierres');
+        const cierres = data.data || data;
+        document.getElementById('caja-cierres-tbody').innerHTML = (Array.isArray(cierres) ? cierres : []).map(c => `
+          <tr>
+            <td>${c.id}</td>
+            <td>${formatDateTime(c.fecha || c.created_at)}</td>
+            <td>${formatMoney(c.total || 0)}</td>
+            <td>${c.cantidad_facturas || c.facturas || 0}</td>
+            <td>${c.usuario_nombre || c.usuario_id || ''}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="text-center text-gray">Sin cierres</td></tr>';
+      } catch(e) {}
+    }
+
+    async function cerrarCaja() {
+      if (!confirm('Cerrar la caja del dia? Esta accion registrara el cierre.')) return;
+      try {
+        await API.post('/caja/cierre');
+        Toast.success('Caja cerrada exitosamente');
+        loadCajaResumen();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // REPORTES
+    // ============================================================
+    async function loadRepVentas() {
+      const inicio = document.getElementById('rep-ventas-inicio').value;
+      const fin = document.getElementById('rep-ventas-fin').value;
+      if (!inicio || !fin) { Toast.error('Seleccione rango de fechas'); return; }
+      try {
+        const data = await API.get('/reportes/ventas?inicio=' + inicio + '&fin=' + fin);
+        const reporte = data.data || data;
+        const ventas = reporte.detalle || reporte.ventas || reporte;
+
+        // Totals
+        if (reporte.totales || reporte.total) {
+          const t = reporte.totales || reporte;
+          document.getElementById('rep-ventas-totales').innerHTML = `
+            <div class="stat-card"><div class="stat-icon green">&#9733;</div><div class="stat-info"><h3>${formatMoney(t.total || t.total_ventas || 0)}</h3><p>Total</p></div></div>
+            <div class="stat-card"><div class="stat-icon blue">&#9875;</div><div class="stat-info"><h3>${t.facturas || t.cantidad || 0}</h3><p>Facturas</p></div></div>
+          `;
+        }
+
+        document.getElementById('rep-ventas-tbody').innerHTML = (Array.isArray(ventas) ? ventas : []).map(v => `
+          <tr>
+            <td>${formatDate(v.fecha)}</td>
+            <td>${v.facturas || v.cantidad || 0}</td>
+            <td>${formatMoney(v.subtotal || 0)}</td>
+            <td>${formatMoney(v.impuesto || 0)}</td>
+            <td>${formatMoney(v.total || 0)}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="text-center text-gray">Sin datos</td></tr>';
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function loadRepPlatos() {
+      const inicio = document.getElementById('rep-platos-inicio').value;
+      const fin = document.getElementById('rep-platos-fin').value;
+      if (!inicio || !fin) { Toast.error('Seleccione rango de fechas'); return; }
+      try {
+        const data = await API.get('/reportes/platos-vendidos?inicio=' + inicio + '&fin=' + fin);
+        const platos = data.data || data;
+        document.getElementById('rep-platos-tbody').innerHTML = (Array.isArray(platos) ? platos : []).map((p, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${p.nombre || p.plato_nombre || ''}</td>
+            <td>${p.cantidad || p.total_vendido || 0}</td>
+            <td>${formatMoney(p.ingresos || p.total_ingresos || 0)}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="4" class="text-center text-gray">Sin datos</td></tr>';
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function loadRepMesas() {
+      const inicio = document.getElementById('rep-mesas-inicio').value;
+      const fin = document.getElementById('rep-mesas-fin').value;
+      if (!inicio || !fin) { Toast.error('Seleccione rango de fechas'); return; }
+      try {
+        const data = await API.get('/reportes/mesas-rotacion?inicio=' + inicio + '&fin=' + fin);
+        const mesas = data.data || data;
+        document.getElementById('rep-mesas-tbody').innerHTML = (Array.isArray(mesas) ? mesas : []).map(m => `
+          <tr>
+            <td>#${m.numero || m.mesa_numero || m.mesa_id || ''}</td>
+            <td>${m.pedidos || m.total_pedidos || 0}</td>
+            <td>${m.reservas || m.total_reservas || 0}</td>
+            <td>${formatMoney(m.ingresos || m.total_ingresos || 0)}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="4" class="text-center text-gray">Sin datos</td></tr>';
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function loadRepAuditoria() {
+      const entidad = document.getElementById('rep-aud-entidad').value;
+      const fecha = document.getElementById('rep-aud-fecha').value;
+      const params = new URLSearchParams({ limit: '200' });
+      if (entidad) params.set('entidad', entidad);
+      if (fecha) params.set('fecha', fecha);
+      try {
+        const data = await API.get('/reportes/auditoria?' + params.toString());
+        const logs = data.data || data;
+        document.getElementById('rep-auditoria-tbody').innerHTML = (Array.isArray(logs) ? logs : []).map(l => `
+          <tr>
+            <td>${l.usuario_nombre || l.usuario || 'Sistema'}</td>
+            <td>${l.accion || ''}</td>
+            <td>${l.entidad || ''}${l.entidad_id ? ' #' + l.entidad_id : ''}</td>
+            <td class="text-xs">${formatAuditDetail(l)}</td>
+            <td>${formatDateTime(l.fecha || l.created_at)}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" class="text-center text-gray">Sin registros</td></tr>';
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    function formatAuditDetail(log) {
+      const parts = [];
+      if (log.datos_anteriores) parts.push('Antes: ' + compactJson(log.datos_anteriores));
+      if (log.datos_nuevos) parts.push('Nuevo: ' + compactJson(log.datos_nuevos));
+      return parts.join('<br>') || '-';
+    }
+
+    function compactJson(value) {
+      try {
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+        return Object.entries(parsed || {}).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ');
+      } catch (e) {
+        return String(value);
+      }
+    }
+
+    // ============================================================
+    // COCINA
+    // ============================================================
+    let cocinaItems = [];
+
+    async function loadCocina() {
+      try {
+        const data = await API.get('/cocina/cola');
+        cocinaItems = data.data || data || [];
+        renderCocina();
+      } catch (err) {
+        Toast.error('Error cargando cocina: ' + err.message);
+      }
+    }
+
+    function renderCocina() {
+      const estado = document.getElementById('filtro-cocina-estado').value;
+      const grid = document.getElementById('admin-cocina-grid');
+      const filtered = estado ? cocinaItems.filter(i => i.estado === estado) : cocinaItems;
+      const pendientes = cocinaItems.filter(i => i.estado === 'pendiente').length;
+      const preparacion = cocinaItems.filter(i => i.estado === 'en_preparacion').length;
+
+      document.getElementById('cocina-stats').innerHTML = `
+        <div class="stat-card"><div class="stat-icon orange">&#9201;</div><div class="stat-info"><h3>${pendientes}</h3><p>Pendientes</p></div></div>
+        <div class="stat-card"><div class="stat-icon blue">&#9832;</div><div class="stat-info"><h3>${preparacion}</h3><p>En preparacion</p></div></div>
+        <div class="stat-card"><div class="stat-icon green">&#10003;</div><div class="stat-info"><h3>${cocinaItems.length}</h3><p>Total en cola</p></div></div>
+      `;
+
+      grid.innerHTML = filtered.map(item => {
+        const mods = item.modificadores || [];
+        const action = item.estado === 'pendiente'
+          ? `<button class="btn btn-warning btn-sm" onclick="cambiarEstadoCocina(${item.id}, 'en_preparacion')">Preparar</button>`
+          : `<button class="btn btn-success btn-sm" onclick="cambiarEstadoCocina(${item.id}, 'listo')">Listo para entregar</button>`;
+
+        return `
+          <div class="cocina-item ${item.estado}">
+            <div class="item-header">
+              <div>
+                <div class="plato-nombre">${item.plato_nombre || '-'}</div>
+                <div class="mesa-info">Mesa ${item.mesa_numero || item.mesa_id || '-'}</div>
+              </div>
+              <div class="cantidad">x${item.cantidad || 1}</div>
+            </div>
+            ${item.notas ? `<div class="item-notas">${item.notas}</div>` : ''}
+            ${mods.length ? `<div class="item-mods">${mods.map(m => `<span class="mod-tag">${m.modificador_nombre || m.nombre || ''}</span>`).join('')}</div>` : ''}
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-xs text-gray">Pedido #${item.pedido_id}</span>
+              ${estadoBadge(item.estado)}
+            </div>
+            <div class="item-actions">${action}</div>
+          </div>
+        `;
+      }).join('') || '<div class="cocina-empty" style="grid-column:1/-1;"><div class="empty-icon">&#10003;</div><p>No hay platos en cocina</p></div>';
+    }
+
+    async function cambiarEstadoCocina(detalleId, estado) {
+      try {
+        await API.put('/cocina/' + detalleId + '/estado', { estado });
+        Toast.success(estado === 'listo' ? 'Plato listo para entregar' : 'Plato en preparacion');
+        loadCocina();
+        loadDashboard();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // DESPACHOS
+    // ============================================================
+    async function loadDespachos() {
+      try {
+        const estado = document.getElementById('filtro-despacho-estado').value;
+        let url = '/despachos';
+        if (estado) url += '?estado=' + estado;
+        const data = await API.get(url);
+        const despachos = data.data || data;
+        document.getElementById('despachos-tbody').innerHTML = (Array.isArray(despachos) ? despachos : []).map(d => `
+          <tr>
+            <td>${d.id}</td>
+            <td>#${d.pedido_id}</td>
+            <td>#${d.mesa_numero || d.mesa_id || ''}</td>
+            <td>${d.despachador_nombre || d.despachador_id || ''}</td>
+            <td>${estadoBadge(d.estado)}</td>
+            <td>${formatDateTime(d.created_at || d.fecha)}</td>
+            <td>
+              <button class="btn btn-info btn-sm" onclick="cambiarEstadoDespacho(${d.id}, '${d.estado}')">Estado</button>
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="7" class="text-center text-gray">No hay despachos</td></tr>';
+      } catch (err) {
+        Toast.error('Error cargando despachos: ' + err.message);
+      }
+    }
+
+    async function cambiarEstadoDespacho(id, estadoActual) {
+      const estados = ['pendiente', 'en_ruta', 'entregado'];
+      const idx = estados.indexOf(estadoActual);
+      const siguiente = estados[idx + 1] || estados[0];
+      const nuevoEstado = prompt('Nuevo estado para despacho #' + id + ':\n(' + estados.join(', ') + ')', siguiente);
+      if (!nuevoEstado) return;
+      try {
+        await API.put('/despachos/' + id + '/estado', { estado: nuevoEstado });
+        Toast.success('Estado del despacho actualizado');
+        loadDespachos();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function openModalDespacho() {
+      try {
+        const data = await API.get('/pedidos');
+        const pedidos = (data.data || data);
+        document.getElementById('despacho-pedido').innerHTML = '<option value="">Seleccione pedido</option>' +
+          (Array.isArray(pedidos) ? pedidos : [])
+            .filter(p => p.estado === 'listo')
+            .map(p => `<option value="${p.id}">Pedido #${p.id} - Mesa #${p.mesa_numero || p.mesa_id}</option>`).join('');
+        _origOpenModal('modal-despacho');
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    async function crearDespacho() {
+      const pedido_id = parseInt(document.getElementById('despacho-pedido').value);
+      if (!pedido_id) { Toast.error('Seleccione un pedido'); return; }
+      try {
+        await API.post('/despachos', { pedido_id });
+        Toast.success('Despacho creado');
+        closeModal('modal-despacho');
+        loadDespachos();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // USUARIOS
+    // ============================================================
+    async function loadUsuarios() {
+      try {
+        const data = await API.get('/usuarios');
+        const usuarios = data.data || data;
+        document.getElementById('usuarios-tbody').innerHTML = (Array.isArray(usuarios) ? usuarios : []).map(u => `
+          <tr>
+            <td>${u.username}</td>
+            <td>${u.nombre || ''}</td>
+            <td>${estadoBadge(u.rol || '')}</td>
+            <td>${u.activo ? '<span class="badge badge-success">Si</span>' : '<span class="badge badge-gray">No</span>'}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="4" class="text-center text-gray">No hay usuarios</td></tr>';
+      } catch (err) {
+        Toast.error('Error cargando usuarios: ' + err.message);
+      }
+    }
+
+    async function resetDemoData() {
+      if (!confirm('Resetear todos los datos de demo? Esto eliminara datos existentes y creara datos de prueba.')) return;
+      if (!confirm('Esta seguro? Esta accion no se puede deshacer.')) return;
+      try {
+        await API.post('/usuarios/reset-demo');
+        Toast.success('Datos de demo reseteados exitosamente');
+        loadDashboard();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    loadDashboard();
+    startDashboardRefresh();
+  </script>
+</body>
+</html>

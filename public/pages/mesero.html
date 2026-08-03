@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mesero - Restaurant</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .section { display: none; }
+    .section.active { display: block; }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; min-width: 180px; }
+    .item-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 8px; flex-wrap: wrap; }
+    .item-row .form-group { flex: 1; min-width: 120px; margin-bottom: 0; }
+    .item-row .btn { margin-bottom: 0; align-self: flex-end; }
+    .items-list { max-height: 400px; overflow-y: auto; }
+    .preview-box { background: var(--gray-50); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .preview-box h4 { margin-bottom: 8px; }
+    .preview-line { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem; }
+    .preview-line.total { font-weight: 700; font-size: 1rem; border-top: 2px solid var(--gray-300); padding-top: 8px; margin-top: 8px; }
+    .mini-mesas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+    .mini-mesa-card { background: white; border-radius: 8px; padding: 10px; text-align: center; border: 2px solid var(--gray-200); cursor: default; font-size: 0.8rem; }
+    .mini-mesa-card.disponible { border-color: var(--mesa-disponible); }
+    .mini-mesa-card.reservada { border-color: var(--mesa-reservada); }
+    .mini-mesa-card.ocupada { border-color: var(--mesa-ocupada); }
+    .mini-mesa-card .mini-mesa-num { font-weight: 700; font-size: 1.1rem; }
+    .mini-mesa-card .mini-mesa-estado { font-size: 0.65rem; text-transform: uppercase; font-weight: 600; }
+    .mod-select { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .mod-chip { padding: 3px 10px; border-radius: 14px; font-size: 0.75rem; border: 1px solid var(--gray-300); cursor: pointer; background: white; transition: all 0.2s; }
+    .mod-chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
+    .running-total { background: var(--gray-800); color: white; padding: 10px 16px; border-radius: 8px; font-size: 1rem; font-weight: 700; text-align: right; margin-top: 12px; }
+    .cuenta-group { border: 1px solid var(--gray-200); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .cuenta-group h4 { margin-bottom: 8px; color: var(--primary); }
+    .modal-lg .modal { max-width: 800px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- ==================== SIDEBAR ==================== -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h2>&#9733; Mesero</h2>
+        <div class="user-info" id="sidebar-user">Mesero</div>
+      </div>
+      <div class="sidebar-nav" id="sidebar-nav">
+        <a href="#" data-section="dashboard" class="active"><span class="nav-icon">&#9632;</span> Dashboard</a>
+        <a href="#" data-section="mesas"><span class="nav-icon">&#9638;</span> Mesas</a>
+        <a href="#" data-section="reservas"><span class="nav-icon">&#9776;</span> Reservas</a>
+        <a href="#" data-section="pedidos"><span class="nav-icon">&#9997;</span> Pedidos</a>
+        <a href="#" data-section="facturacion"><span class="nav-icon">&#9875;</span> Facturacion</a>
+        <a href="#" data-section="despachos"><span class="nav-icon">&#10148;</span> Despachos</a>
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="API.logout()">&#10140; Cerrar Sesion</button>
+      </div>
+    </nav>
+
+    <!-- ==================== MAIN ==================== -->
+    <div class="main-content">
+      <div class="topbar">
+        <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+        <h1 id="topbar-title">Dashboard</h1>
+        <div class="text-sm text-gray" id="topbar-date"></div>
+      </div>
+
+      <div class="content-area">
+
+        <!-- ============ DASHBOARD ============ -->
+        <div id="sec-dashboard" class="section active">
+          <div class="stats-grid" id="dashboard-stats"></div>
+          <div class="panel-card">
+            <div class="panel-card-header"><h2>Vista rapida de Mesas</h2></div>
+            <div class="panel-card-body">
+              <div class="mini-mesas-grid" id="dashboard-mesas"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ MESAS ============ -->
+        <div id="sec-mesas" class="section">
+          <div class="help-card"><div class="help-icon">1</div><div><strong>Empieza por la mesa</strong><span>Haz clic en una mesa para asignartela, cambiar su estado o crear un pedido directamente.</span></div></div>
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Mapa de Mesas</h2>
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-trasladar')">&#8644; Trasladar mesa</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="mesas-grid" id="mesas-grid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ RESERVAS ============ -->
+        <div id="sec-reservas" class="section">
+          <div class="help-card"><div class="help-icon">2</div><div><strong>Gestiona reservas rapido</strong><span>Crea una reserva, confirma la llegada del cliente o marca no-show desde la columna de acciones.</span></div></div>
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Reservas</h2>
+              <button class="btn btn-primary btn-sm" onclick="openModalNuevaReserva()">+ Nueva Reserva</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="filters-bar">
+                <input type="date" id="filtro-reserva-fecha">
+                <select id="filtro-reserva-estado">
+                  <option value="">Todos los estados</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="confirmada">Confirmada</option>
+                  <option value="en_mesa">En mesa</option>
+                  <option value="completada">Completada</option>
+                  <option value="cancelada">Cancelada</option>
+                  <option value="no_show">No show</option>
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="loadReservas()">Filtrar</button>
+              </div>
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Mesa</th>
+                      <th>Cliente</th>
+                      <th>Personas</th>
+                      <th>Fecha</th>
+                      <th>Hora</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reservas-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ PEDIDOS ============ -->
+        <div id="sec-pedidos" class="section">
+          <div class="help-card"><div class="help-icon">3</div><div><strong>Control del pedido</strong><span>Agrega platos, edita cantidades, divide cuentas o cancela items antes de que sean entregados.</span></div></div>
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Pedidos</h2>
+              <button class="btn btn-primary btn-sm" onclick="openModalNuevoPedido()">+ Nuevo Pedido</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Mesa</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pedidos-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ FACTURACION ============ -->
+        <div id="sec-facturacion" class="section">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Facturacion</h2>
+            </div>
+            <div class="panel-card-body">
+              <div class="form-row mb-4">
+                <div class="form-group">
+                  <label>Seleccionar Pedido para facturar</label>
+                  <select id="fact-pedido-select" onchange="loadCuentaPreview()">
+                    <option value="">-- Seleccione pedido --</option>
+                  </select>
+                </div>
+              </div>
+              <div id="cuenta-preview"></div>
+              <div id="factura-form-container" class="hidden">
+                <h3 class="mb-2">Generar Factura</h3>
+                <form id="form-generar-factura" onsubmit="generarFactura(event)">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Metodo de pago</label>
+                      <select id="fact-metodo-pago" onchange="toggleMetodoPagoFields()">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="mixto">Mixto</option>
+                      </select>
+                    </div>
+                    <div class="form-group" id="fg-monto-efectivo">
+                      <label>Monto efectivo</label>
+                      <input type="number" id="fact-monto-efectivo" min="0" step="100">
+                    </div>
+                    <div class="form-group hidden" id="fg-monto-tarjeta">
+                      <label>Monto tarjeta</label>
+                      <input type="number" id="fact-monto-tarjeta" min="0" step="100">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Propina</label>
+                      <input type="number" id="fact-propina" min="0" step="100" value="0">
+                    </div>
+                    <div class="form-group">
+                      <label>Comensales (division)</label>
+                      <input type="number" id="fact-comensales" min="1" value="1">
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>NIT cliente</label>
+                      <input type="text" id="fact-nit" placeholder="Opcional">
+                    </div>
+                    <div class="form-group">
+                      <label>Razon social</label>
+                      <input type="text" id="fact-razon" placeholder="Opcional">
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-success">Generar Factura</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Facturas Recientes</h2>
+              <button class="btn btn-outline btn-sm" onclick="loadFacturas()">Actualizar</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Pedido</th>
+                      <th>Total</th>
+                      <th>Metodo</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="facturas-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ DESPACHOS ============ -->
+        <div id="sec-despachos" class="section">
+          <div class="help-card"><div class="help-icon">4</div><div><strong>Entrega al cliente</strong><span>Cuando cocina marca platos como listos, crea un despacho y cambialo a en ruta y entregado.</span></div></div>
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Despachos</h2>
+              <button class="btn btn-primary btn-sm" onclick="openModalNuevoDespacho()">+ Nuevo Despacho</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Pedido</th>
+                      <th>Mesa</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="despachos-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content-area -->
+    </div><!-- /main-content -->
+  </div><!-- /app-layout -->
+
+  <!-- ================================================================
+       MODALS
+       ================================================================ -->
+
+  <!-- Modal: Detalle Mesa -->
+  <div class="modal-overlay" id="modal-mesa-detalle">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Detalle de Mesa</h3>
+        <button class="modal-close" onclick="closeModal('modal-mesa-detalle')">&times;</button>
+      </div>
+      <div class="modal-body" id="mesa-detalle-body">
+        <!-- filled dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-mesa-detalle')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Trasladar Mesa -->
+  <div class="modal-overlay" id="modal-trasladar">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Trasladar Mesa</h3>
+        <button class="modal-close" onclick="closeModal('modal-trasladar')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-trasladar" onsubmit="trasladarMesa(event)">
+          <div class="form-group">
+            <label>Pedido</label>
+            <select id="trasl-pedido" required></select>
+          </div>
+          <div class="form-group">
+            <label>Mesa origen</label>
+            <select id="trasl-origen" required></select>
+          </div>
+          <div class="form-group">
+            <label>Mesa destino</label>
+            <select id="trasl-destino" required></select>
+          </div>
+          <div class="modal-footer" style="padding: 16px 0 0;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('modal-trasladar')">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm">Trasladar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nueva Reserva -->
+  <div class="modal-overlay" id="modal-nueva-reserva">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Nueva Reserva</h3>
+        <button class="modal-close" onclick="closeModal('modal-nueva-reserva')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-nueva-reserva" onsubmit="crearReserva(event)">
+          <div class="form-group">
+            <label>Mesa</label>
+            <select id="res-mesa" required></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre del cliente</label>
+              <input type="text" id="res-cliente-nombre" required>
+            </div>
+            <div class="form-group">
+              <label>Telefono</label>
+              <input type="text" id="res-cliente-tel">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Personas</label>
+              <input type="number" id="res-personas" min="1" required>
+            </div>
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" id="res-fecha" required>
+            </div>
+            <div class="form-group">
+              <label>Hora</label>
+              <input type="time" id="res-hora" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notas</label>
+            <textarea id="res-notas" rows="2"></textarea>
+          </div>
+          <div class="modal-footer" style="padding: 16px 0 0;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('modal-nueva-reserva')">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm">Crear Reserva</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nuevo Pedido -->
+  <div class="modal-overlay modal-lg" id="modal-nuevo-pedido">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Nuevo Pedido</h3>
+        <button class="modal-close" onclick="closeModal('modal-nuevo-pedido')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-nuevo-pedido" onsubmit="crearPedido(event)">
+          <div class="form-group">
+            <label>Mesa</label>
+            <select id="ped-mesa" required></select>
+          </div>
+          <h4 class="mb-2">Items del pedido</h4>
+          <div class="items-list" id="pedido-items-list">
+            <!-- item rows added dynamically -->
+          </div>
+          <button type="button" class="btn btn-outline btn-sm mt-2" onclick="addPedidoItemRow()">+ Agregar item</button>
+          <div class="running-total" id="pedido-running-total">Total: $0</div>
+          <div class="modal-footer" style="padding: 16px 0 0;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('modal-nuevo-pedido')">Cancelar</button>
+            <button type="submit" class="btn btn-success btn-sm">Crear Pedido</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle Pedido -->
+  <div class="modal-overlay modal-lg" id="modal-pedido-detalle">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="pedido-detalle-title">Detalle de Pedido</h3>
+        <button class="modal-close" onclick="closeModal('modal-pedido-detalle')">&times;</button>
+      </div>
+      <div class="modal-body" id="pedido-detalle-body">
+        <!-- filled dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-pedido-detalle')">Cerrar</button>
+        <button class="btn btn-primary btn-sm" id="btn-agregar-items-pedido" onclick="openModalAgregarItems()">+ Agregar Items</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Agregar Items a Pedido existente -->
+  <div class="modal-overlay modal-lg" id="modal-agregar-items">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Agregar Items al Pedido <span id="agregar-items-pedido-id"></span></h3>
+        <button class="modal-close" onclick="closeModal('modal-agregar-items')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-agregar-items" onsubmit="agregarItemsPedido(event)">
+          <div class="items-list" id="agregar-items-list"></div>
+          <button type="button" class="btn btn-outline btn-sm mt-2" onclick="addAgregarItemRow()">+ Agregar item</button>
+          <div class="running-total" id="agregar-running-total">Total: $0</div>
+          <div class="modal-footer" style="padding: 16px 0 0;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('modal-agregar-items')">Cancelar</button>
+            <button type="submit" class="btn btn-success btn-sm">Agregar al Pedido</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle Factura -->
+  <div class="modal-overlay" id="modal-factura-detalle">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="factura-detalle-title">Detalle de Factura</h3>
+        <button class="modal-close" onclick="closeModal('modal-factura-detalle')">&times;</button>
+      </div>
+      <div class="modal-body" id="factura-detalle-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-factura-detalle')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nuevo Despacho -->
+  <div class="modal-overlay" id="modal-nuevo-despacho">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Nuevo Despacho</h3>
+        <button class="modal-close" onclick="closeModal('modal-nuevo-despacho')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-nuevo-despacho" onsubmit="crearDespacho(event)">
+          <div class="form-group">
+            <label>Pedido (con platos listos)</label>
+            <select id="desp-pedido" required></select>
+          </div>
+          <div class="modal-footer" style="padding: 16px 0 0;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('modal-nuevo-despacho')">Cancelar</button>
+            <button type="submit" class="btn btn-success btn-sm">Crear Despacho</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       SCRIPTS
+       ================================================================ -->
+  <script src="/js/api.js"></script>
+  <script>
+    // ============================================================
+    // GLOBAL STATE
+    // ============================================================
+    let currentSection = 'dashboard';
+    let mesasData = [];
+    let platosData = [];
+    let modificadoresData = [];
+    let currentPedidoId = null;
+    let dashboardInterval = null;
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = API.checkAuth(['mesero', 'administrador']);
+      if (!user) return;
+
+      document.getElementById('sidebar-user').textContent = user.nombre || user.username;
+      document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('es-CO', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+
+      // Section navigation
+      document.querySelectorAll('#sidebar-nav a[data-section]').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const section = link.dataset.section;
+          switchSection(section);
+          // Close sidebar on mobile
+          document.querySelector('.sidebar').classList.remove('open');
+        });
+      });
+
+      // Preload shared data
+      loadPlatos();
+      loadModificadores();
+
+      // Load initial section
+      switchSection('dashboard');
+    });
+
+    // ============================================================
+    // SECTION SWITCHING
+    // ============================================================
+    function switchSection(section) {
+      currentSection = section;
+
+      // Toggle active section
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById('sec-' + section);
+      if (target) target.classList.add('active');
+
+      // Toggle active nav link
+      document.querySelectorAll('#sidebar-nav a').forEach(a => a.classList.remove('active'));
+      const navLink = document.querySelector(`#sidebar-nav a[data-section="${section}"]`);
+      if (navLink) navLink.classList.add('active');
+
+      // Update topbar title
+      const titles = {
+        dashboard: 'Dashboard',
+        mesas: 'Mesas',
+        reservas: 'Reservas',
+        pedidos: 'Pedidos',
+        facturacion: 'Facturacion',
+        despachos: 'Despachos'
+      };
+      document.getElementById('topbar-title').textContent = titles[section] || section;
+
+      // Clear dashboard interval
+      if (dashboardInterval) {
+        clearInterval(dashboardInterval);
+        dashboardInterval = null;
+      }
+
+      // Load section data
+      switch (section) {
+        case 'dashboard':
+          loadDashboard();
+          dashboardInterval = setInterval(loadDashboard, 30000);
+          break;
+        case 'mesas':
+          loadMesas();
+          break;
+        case 'reservas':
+          loadReservas();
+          break;
+        case 'pedidos':
+          loadPedidos();
+          break;
+        case 'facturacion':
+          loadFacturacionPedidos();
+          loadFacturas();
+          break;
+        case 'despachos':
+          loadDespachos();
+          break;
+      }
+    }
+
+    // ============================================================
+    // SHARED DATA LOADERS
+    // ============================================================
+    async function loadPlatos() {
+      try {
+        const data = await API.get('/menu/platos');
+        platosData = data.data || data.platos || data || [];
+      } catch (e) {
+        console.error('Error cargando platos:', e);
+      }
+    }
+
+    async function loadModificadores() {
+      try {
+        const data = await API.get('/menu/modificadores');
+        modificadoresData = data.data || data.modificadores || data || [];
+      } catch (e) {
+        console.error('Error cargando modificadores:', e);
+      }
+    }
+
+    async function loadMesasData() {
+      try {
+        const data = await API.get('/mesas');
+        mesasData = data.data || data.mesas || data || [];
+        return mesasData;
+      } catch (e) {
+        Toast.error('Error cargando mesas');
+        return [];
+      }
+    }
+
+    // ============================================================
+    // DASHBOARD
+    // ============================================================
+    async function loadDashboard() {
+      try {
+        const [statsResp, mesas] = await Promise.all([
+          API.get('/reportes/estadisticas'),
+          loadMesasData()
+        ]);
+        const stats = statsResp.data || statsResp;
+
+        // Stats cards
+        const statsGrid = document.getElementById('dashboard-stats');
+        statsGrid.innerHTML = `
+          <div class="stat-card">
+            <div class="stat-icon blue">&#9776;</div>
+            <div class="stat-info">
+              <h3>${stats.reservas_hoy ?? 0}</h3>
+              <p>Reservas hoy</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">&#9749;</div>
+            <div class="stat-info">
+              <h3>${stats.platos_pendientes ?? 0}</h3>
+              <p>Platos pendientes</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">&#9638;</div>
+            <div class="stat-info">
+              <h3>${stats.mesas_ocupadas ?? 0}</h3>
+              <p>Mesas ocupadas</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">&#9997;</div>
+            <div class="stat-info">
+              <h3>${stats.pedidos_abiertos ?? 0}</h3>
+              <p>Pedidos abiertos</p>
+            </div>
+          </div>
+        `;
+
+        // Mini mesas grid
+        const miniGrid = document.getElementById('dashboard-mesas');
+        miniGrid.innerHTML = mesas.map(m => `
+          <div class="mini-mesa-card ${m.estado}">
+            <div class="mini-mesa-num">${m.numero}</div>
+            <div class="mini-mesa-estado">${m.estado}</div>
+          </div>
+        `).join('');
+
+      } catch (e) {
+        Toast.error('Error cargando dashboard: ' + e.message);
+      }
+    }
+
+    // ============================================================
+    // MESAS
+    // ============================================================
+    async function loadMesas() {
+      const mesas = await loadMesasData();
+      const grid = document.getElementById('mesas-grid');
+      grid.innerHTML = mesas.map(m => `
+        <div class="mesa-card ${m.estado}" onclick="showMesaDetalle(${m.id})">
+          <div class="mesa-numero">${m.numero}</div>
+          <div class="mesa-capacidad">&#128101; ${m.capacidad} personas</div>
+          <div class="mesa-estado">${m.estado}</div>
+          ${m.mesero_nombre ? `<div class="mesa-mesero">${m.mesero_nombre}</div>` : ''}
+        </div>
+      `).join('');
+
+      // Also load trasladar selects
+      loadTrasladarSelects(mesas);
+    }
+
+    function showMesaDetalle(mesaId) {
+      const mesa = mesasData.find(m => m.id === mesaId);
+      if (!mesa) return;
+
+      const body = document.getElementById('mesa-detalle-body');
+      const estados = ['disponible', 'reservada', 'ocupada'];
+
+      body.innerHTML = `
+        <div style="text-align: center; margin-bottom: 16px;">
+          <div style="font-size: 2.5rem; font-weight: 700;">Mesa ${mesa.numero}</div>
+          <div class="mt-2">${estadoBadge(mesa.estado)}</div>
+        </div>
+        <div class="preview-box">
+          <div class="preview-line"><span>Capacidad:</span><span>${mesa.capacidad} personas</span></div>
+          <div class="preview-line"><span>Estado:</span><span>${mesa.estado}</span></div>
+          <div class="preview-line"><span>Mesero:</span><span>${mesa.mesero_nombre || 'Sin asignar'}</span></div>
+        </div>
+        <div class="flex gap-2 flex-wrap mb-4">
+          <button class="btn btn-primary btn-sm" onclick="asignarmeMesa(${mesa.id})">Asignarme mesa</button>
+          <button class="btn btn-success btn-sm" onclick="nuevoPedidoMesa(${mesa.id})">Crear pedido en esta mesa</button>
+        </div>
+        <h4 class="mb-2">Cambiar estado</h4>
+        <div class="flex gap-2 flex-wrap">
+          ${estados.map(est => `
+            <button class="btn btn-sm ${est === mesa.estado ? 'btn-primary' : 'btn-outline'}"
+              onclick="cambiarEstadoMesa(${mesa.id}, '${est}')" ${est === mesa.estado ? 'disabled' : ''}>
+              ${est}
+            </button>
+          `).join('')}
+        </div>
+      `;
+
+      openModal('modal-mesa-detalle');
+    }
+
+    async function cambiarEstadoMesa(mesaId, estado) {
+      try {
+        await API.put('/mesas/' + mesaId, { estado });
+        Toast.success('Estado de mesa actualizado');
+        closeModal('modal-mesa-detalle');
+        loadMesas();
+        if (currentSection === 'dashboard') loadDashboard();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    async function asignarmeMesa(mesaId) {
+      try {
+        const user = API.getUser();
+        await API.put('/mesas/' + mesaId + '/asignar-mesero', { mesero_id: user.id });
+        Toast.success('Mesa asignada al mesero');
+        closeModal('modal-mesa-detalle');
+        loadMesas();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    async function nuevoPedidoMesa(mesaId) {
+      closeModal('modal-mesa-detalle');
+      await openModalNuevoPedido();
+      document.getElementById('ped-mesa').value = mesaId;
+    }
+
+    function loadTrasladarSelects(mesas) {
+      const pedidoSelect = document.getElementById('trasl-pedido');
+      const origenSelect = document.getElementById('trasl-origen');
+      const destinoSelect = document.getElementById('trasl-destino');
+
+      // Load pedidos for trasladar
+      API.get('/pedidos').then(data => {
+        const pedidos = data.data || data.pedidos || data || [];
+        pedidoSelect.innerHTML = '<option value="">-- Seleccione pedido --</option>' +
+          pedidos.filter(p => p.estado === 'abierto' || p.estado === 'en_preparacion')
+            .map(p => `<option value="${p.id}">Pedido #${p.id} - Mesa ${p.mesa_numero || p.mesa_id}</option>`).join('');
+      }).catch(() => {});
+
+      const mesaOpts = mesas.map(m => `<option value="${m.id}">Mesa ${m.numero} (${m.estado})</option>`).join('');
+      origenSelect.innerHTML = '<option value="">-- Mesa origen --</option>' + mesaOpts;
+      destinoSelect.innerHTML = '<option value="">-- Mesa destino --</option>' + mesaOpts;
+    }
+
+    async function trasladarMesa(e) {
+      e.preventDefault();
+      const pedidoId = document.getElementById('trasl-pedido').value;
+      const origenId = document.getElementById('trasl-origen').value;
+      const destinoId = document.getElementById('trasl-destino').value;
+
+      if (!pedidoId || !origenId || !destinoId) {
+        Toast.error('Complete todos los campos');
+        return;
+      }
+      if (origenId === destinoId) {
+        Toast.error('La mesa origen y destino no pueden ser la misma');
+        return;
+      }
+
+      try {
+        await API.put('/mesas/trasladar', {
+          pedido_id: parseInt(pedidoId),
+          mesa_origen_id: parseInt(origenId),
+          mesa_destino_id: parseInt(destinoId)
+        });
+        Toast.success('Mesa trasladada exitosamente');
+        closeModal('modal-trasladar');
+        loadMesas();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    // ============================================================
+    // RESERVAS
+    // ============================================================
+    async function loadReservas() {
+      try {
+        const fecha = document.getElementById('filtro-reserva-fecha').value;
+        const estado = document.getElementById('filtro-reserva-estado').value;
+        let query = '?';
+        if (fecha) query += 'fecha=' + fecha + '&';
+        if (estado) query += 'estado=' + estado;
+
+        const data = await API.get('/reservas' + query);
+        const reservas = data.data || data.reservas || data || [];
+        const tbody = document.getElementById('reservas-tbody');
+
+        if (reservas.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray">No hay reservas</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = reservas.map(r => `
+          <tr>
+            <td>${r.id}</td>
+            <td>Mesa ${r.mesa_numero || r.mesa_id}</td>
+            <td>${r.cliente_nombre || '-'}<br><span class="text-xs text-gray">${r.cliente_telefono || ''}</span></td>
+            <td>${r.personas}</td>
+            <td>${formatDate(r.fecha)}</td>
+            <td>${formatTime(r.hora)}</td>
+            <td>${estadoBadge(r.estado)}</td>
+            <td>
+              <div class="flex gap-2 flex-wrap">
+                ${r.estado === 'pendiente' ? `
+                  <button class="btn btn-success btn-sm" onclick="cambiarEstadoReserva(${r.id}, 'confirmada')">Confirmar</button>
+                  <button class="btn btn-danger btn-sm" onclick="cambiarEstadoReserva(${r.id}, 'cancelada')">Cancelar</button>
+                ` : ''}
+                ${r.estado === 'confirmada' ? `
+                  <button class="btn btn-primary btn-sm" onclick="cambiarEstadoReserva(${r.id}, 'en_mesa')">En mesa</button>
+                  <button class="btn btn-danger btn-sm" onclick="cambiarEstadoReserva(${r.id}, 'no_show')">No show</button>
+                ` : ''}
+                ${r.estado === 'en_mesa' ? `
+                  <button class="btn btn-success btn-sm" onclick="cambiarEstadoReserva(${r.id}, 'completada')">Completar</button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        Toast.error('Error cargando reservas: ' + e.message);
+      }
+    }
+
+    async function cambiarEstadoReserva(id, estado) {
+      try {
+        await API.put('/reservas/' + id + '/estado', { estado });
+        Toast.success('Reserva actualizada');
+        loadReservas();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    async function openModalNuevaReserva() {
+      const mesas = await loadMesasData();
+      const select = document.getElementById('res-mesa');
+      select.innerHTML = '<option value="">-- Seleccione mesa --</option>' +
+        mesas.filter(m => m.estado === 'disponible')
+          .map(m => `<option value="${m.id}">Mesa ${m.numero} (${m.capacidad} pers.)</option>`).join('');
+
+      // Set default date to today
+      document.getElementById('res-fecha').value = new Date().toISOString().split('T')[0];
+      document.getElementById('form-nueva-reserva').reset();
+      document.getElementById('res-fecha').value = new Date().toISOString().split('T')[0];
+
+      openModal('modal-nueva-reserva');
+    }
+
+    async function crearReserva(e) {
+      e.preventDefault();
+      const body = {
+        mesa_id: parseInt(document.getElementById('res-mesa').value),
+        cliente_nombre: document.getElementById('res-cliente-nombre').value.trim(),
+        cliente_telefono: document.getElementById('res-cliente-tel').value.trim(),
+        personas: parseInt(document.getElementById('res-personas').value),
+        fecha: document.getElementById('res-fecha').value,
+        hora: document.getElementById('res-hora').value,
+        notas: document.getElementById('res-notas').value.trim()
+      };
+
+      if (!body.mesa_id || !body.cliente_nombre || !body.personas || !body.fecha || !body.hora) {
+        Toast.error('Complete los campos requeridos');
+        return;
+      }
+
+      try {
+        await API.post('/reservas', body);
+        Toast.success('Reserva creada exitosamente');
+        closeModal('modal-nueva-reserva');
+        loadReservas();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    // ============================================================
+    // PEDIDOS
+    // ============================================================
+    async function loadPedidos() {
+      try {
+        const data = await API.get('/pedidos');
+        const pedidos = data.data || data.pedidos || data || [];
+        const tbody = document.getElementById('pedidos-tbody');
+
+        if (pedidos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray">No hay pedidos</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = pedidos.map(p => `
+          <tr>
+            <td>#${p.id}</td>
+            <td>Mesa ${p.mesa_numero || p.mesa_id}</td>
+            <td>${estadoBadge(p.estado)}</td>
+            <td>${formatDateTime(p.created_at || p.fecha)}</td>
+            <td>
+              <div class="flex gap-2 flex-wrap">
+                <button class="btn btn-info btn-sm" onclick="showPedidoDetalle(${p.id})">Ver / editar</button>
+                ${p.estado !== 'cerrado' && p.estado !== 'cancelado' ? `<button class="btn btn-danger btn-sm" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        Toast.error('Error cargando pedidos: ' + e.message);
+      }
+    }
+
+    async function showPedidoDetalle(pedidoId) {
+      currentPedidoId = pedidoId;
+      try {
+        const data = await API.get('/pedidos/' + pedidoId);
+        const pedido = data.data || data.pedido || data;
+        const items = pedido.detalle || pedido.items || pedido.detalles || [];
+
+        document.getElementById('pedido-detalle-title').textContent = 'Pedido #' + pedidoId;
+        document.getElementById('agregar-items-pedido-id').textContent = '#' + pedidoId;
+
+        const body = document.getElementById('pedido-detalle-body');
+        body.innerHTML = `
+          <div class="preview-box">
+            <div class="preview-line"><span>Mesa:</span><span>Mesa ${pedido.mesa_numero || pedido.mesa_id}</span></div>
+            <div class="preview-line"><span>Estado:</span><span>${estadoBadge(pedido.estado)}</span></div>
+            <div class="preview-line"><span>Fecha:</span><span>${formatDateTime(pedido.created_at || pedido.fecha)}</span></div>
+          </div>
+          <h4 class="mb-2">Items del pedido</h4>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Plato</th>
+                  <th>Cant.</th>
+                  <th>Precio</th>
+                  <th>Notas</th>
+                  <th>Modificadores</th>
+                  <th>Estado</th>
+                  <th>Cuenta</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(item => `
+                  <tr>
+                    <td>${item.plato_nombre || item.nombre || '-'}</td>
+                    <td>${item.cantidad}</td>
+                    <td>${formatMoney(item.precio_unitario || item.precio || 0)}</td>
+                    <td><span class="text-xs text-gray">${item.notas || '-'}</span></td>
+                    <td>
+                      ${(item.modificadores || []).map(mod =>
+                        `<span class="badge badge-warning" style="margin: 1px;">${mod.nombre || mod.modificador_nombre || ''}</span>`
+                      ).join('') || '-'}
+                    </td>
+                    <td>${item.estado ? estadoBadge(item.estado) : '-'}</td>
+                    <td>${item.cuenta_numero || 1}</td>
+                    <td>
+                      <div class="flex gap-2 flex-wrap">
+                        ${['pendiente', 'en_preparacion'].includes(item.estado) ? `<button class="btn btn-primary btn-sm" onclick="editarItemPedido(${item.id}, ${item.cantidad}, '${escapeAttr(item.notas || '')}', ${item.cuenta_numero || 1})">Editar</button>` : ''}
+                        <button class="btn btn-outline btn-sm" onclick="dividirCuenta(${item.id})" title="Cambiar cuenta">&#8644;</button>
+                        ${!['entregado', 'cancelado'].includes(item.estado) ? `<button class="btn btn-danger btn-sm" onclick="cancelarItemPedido(${item.id})">Cancelar</button>` : ''}
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        openModal('modal-pedido-detalle');
+      } catch (e) {
+        Toast.error('Error cargando pedido: ' + e.message);
+      }
+    }
+
+    async function dividirCuenta(detalleId) {
+      const nuevaCuenta = prompt('Ingrese el numero de cuenta para este item:');
+      if (nuevaCuenta === null || nuevaCuenta === '') return;
+      const num = parseInt(nuevaCuenta);
+      if (isNaN(num) || num < 1) {
+        Toast.error('Numero de cuenta invalido');
+        return;
+      }
+      try {
+        await API.put('/pedidos/detalle/' + detalleId + '/dividir-cuenta', { cuenta_numero: num });
+        Toast.success('Cuenta actualizada');
+        showPedidoDetalle(currentPedidoId);
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    async function editarItemPedido(detalleId, cantidadActual, notasActual, cuentaActual) {
+      const cantidad = prompt('Nueva cantidad:', cantidadActual);
+      if (cantidad === null) return;
+      const notas = prompt('Notas del item:', notasActual || '');
+      if (notas === null) return;
+      const cuenta = prompt('Numero de cuenta:', cuentaActual || 1);
+      if (cuenta === null) return;
+
+      try {
+        await API.put('/pedidos/detalle/' + detalleId, {
+          cantidad: parseInt(cantidad),
+          notas: notas.trim(),
+          cuenta_numero: parseInt(cuenta)
+        });
+        Toast.success('Item actualizado');
+        showPedidoDetalle(currentPedidoId);
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    async function cancelarItemPedido(detalleId) {
+      if (!confirm('Cancelar este item del pedido?')) return;
+      try {
+        await API.put('/pedidos/detalle/' + detalleId + '/cancelar', {});
+        Toast.success('Item cancelado');
+        showPedidoDetalle(currentPedidoId);
+        loadPedidos();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    async function cancelarPedido(pedidoId) {
+      if (!confirm('Cancelar el pedido completo #' + pedidoId + '?')) return;
+      try {
+        await API.put('/pedidos/' + pedidoId + '/estado', { estado: 'cancelado' });
+        Toast.success('Pedido cancelado');
+        loadPedidos();
+        if (currentSection === 'mesas') loadMesas();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    // --- Nuevo pedido ---
+    async function openModalNuevoPedido() {
+      const mesas = await loadMesasData();
+      const select = document.getElementById('ped-mesa');
+      select.innerHTML = '<option value="">-- Seleccione mesa --</option>' +
+        mesas.map(m => `<option value="${m.id}">Mesa ${m.numero} (${m.estado})</option>`).join('');
+
+      document.getElementById('pedido-items-list').innerHTML = '';
+      document.getElementById('pedido-running-total').textContent = 'Total: $0';
+      addPedidoItemRow();
+
+      openModal('modal-nuevo-pedido');
+    }
+
+    function buildItemRow(containerId, prefix) {
+      const idx = document.querySelectorAll('#' + containerId + ' .item-row').length;
+      const div = document.createElement('div');
+      div.className = 'item-row';
+      div.dataset.index = idx;
+
+      const platosOpts = platosData.map(p =>
+        `<option value="${p.id}" data-precio="${p.precio}">${p.nombre} - ${formatMoney(p.precio)}</option>`
+      ).join('');
+
+      div.innerHTML = `
+        <div class="form-group" style="flex:2;">
+          <label>Plato</label>
+          <select class="item-plato" onchange="updateRunningTotal('${containerId}', '${prefix}')" required>
+            <option value="">-- Plato --</option>
+            ${platosOpts}
+          </select>
+        </div>
+        <div class="form-group" style="flex:0.5; min-width: 70px;">
+          <label>Cant.</label>
+          <input type="number" class="item-cantidad" min="1" value="1" onchange="updateRunningTotal('${containerId}', '${prefix}')" required>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Notas</label>
+          <input type="text" class="item-notas" placeholder="Sin cebolla...">
+        </div>
+        <div class="form-group" style="flex:0.5; min-width: 70px;">
+          <label>Cuenta</label>
+          <input type="number" class="item-cuenta" min="1" value="1">
+        </div>
+        <div class="form-group" style="flex:2;">
+          <label>Modificadores</label>
+          <div class="mod-select">
+            ${modificadoresData.map(mod =>
+              `<span class="mod-chip" data-id="${mod.id}" onclick="this.classList.toggle('selected')">${mod.nombre}</span>`
+            ).join('')}
+          </div>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.item-row').remove(); updateRunningTotal('${containerId}', '${prefix}');" style="align-self: flex-end; margin-bottom: 4px;">&times;</button>
+      `;
+
+      document.getElementById(containerId).appendChild(div);
+    }
+
+    function addPedidoItemRow() {
+      buildItemRow('pedido-items-list', 'pedido');
+    }
+
+    function addAgregarItemRow() {
+      buildItemRow('agregar-items-list', 'agregar');
+    }
+
+    function updateRunningTotal(containerId, prefix) {
+      const container = document.getElementById(containerId);
+      const rows = container.querySelectorAll('.item-row');
+      let total = 0;
+      rows.forEach(row => {
+        const sel = row.querySelector('.item-plato');
+        const cant = row.querySelector('.item-cantidad');
+        if (sel.value && cant.value) {
+          const opt = sel.options[sel.selectedIndex];
+          const precio = parseFloat(opt.dataset.precio) || 0;
+          total += precio * parseInt(cant.value);
+        }
+      });
+      document.getElementById(prefix + '-running-total').textContent = 'Total: ' + formatMoney(total);
+    }
+
+    function collectItems(containerId) {
+      const container = document.getElementById(containerId);
+      const rows = container.querySelectorAll('.item-row');
+      const items = [];
+
+      rows.forEach(row => {
+        const platoId = row.querySelector('.item-plato').value;
+        const cantidad = row.querySelector('.item-cantidad').value;
+        if (!platoId || !cantidad) return;
+
+        const mods = [];
+        row.querySelectorAll('.mod-chip.selected').forEach(chip => {
+          mods.push({ modificador_id: parseInt(chip.dataset.id) });
+        });
+
+        items.push({
+          plato_id: parseInt(platoId),
+          cantidad: parseInt(cantidad),
+          notas: row.querySelector('.item-notas').value.trim(),
+          modificadores: mods,
+          cuenta_numero: parseInt(row.querySelector('.item-cuenta').value) || 1
+        });
+      });
+
+      return items;
+    }
+
+    async function crearPedido(e) {
+      e.preventDefault();
+      const mesaId = document.getElementById('ped-mesa').value;
+      if (!mesaId) {
+        Toast.error('Seleccione una mesa');
+        return;
+      }
+
+      const items = collectItems('pedido-items-list');
+      if (items.length === 0) {
+        Toast.error('Agregue al menos un item');
+        return;
+      }
+
+      try {
+        await API.post('/pedidos', {
+          mesa_id: parseInt(mesaId),
+          items: items
+        });
+        Toast.success('Pedido creado exitosamente');
+        closeModal('modal-nuevo-pedido');
+        loadPedidos();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    // --- Agregar items a pedido existente ---
+    function openModalAgregarItems() {
+      closeModal('modal-pedido-detalle');
+      document.getElementById('agregar-items-list').innerHTML = '';
+      document.getElementById('agregar-running-total').textContent = 'Total: $0';
+      addAgregarItemRow();
+      openModal('modal-agregar-items');
+    }
+
+    async function agregarItemsPedido(e) {
+      e.preventDefault();
+      if (!currentPedidoId) return;
+
+      const items = collectItems('agregar-items-list');
+      if (items.length === 0) {
+        Toast.error('Agregue al menos un item');
+        return;
+      }
+
+      try {
+        await API.post('/pedidos/' + currentPedidoId + '/items', { items });
+        Toast.success('Items agregados al pedido');
+        closeModal('modal-agregar-items');
+        loadPedidos();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    // ============================================================
+    // FACTURACION
+    // ============================================================
+    async function loadFacturacionPedidos() {
+      try {
+        const data = await API.get('/pedidos');
+        const pedidos = data.data || data.pedidos || data || [];
+        const select = document.getElementById('fact-pedido-select');
+        select.innerHTML = '<option value="">-- Seleccione pedido --</option>' +
+          pedidos.filter(p => ['entregado', 'listo'].includes(p.estado))
+            .map(p => `<option value="${p.id}">Pedido #${p.id} - Mesa ${p.mesa_numero || p.mesa_id} (${p.estado})</option>`).join('');
+        document.getElementById('cuenta-preview').innerHTML = '';
+        document.getElementById('factura-form-container').classList.add('hidden');
+      } catch (e) {
+        Toast.error('Error cargando pedidos para facturacion');
+      }
+    }
+
+    async function loadCuentaPreview() {
+      const pedidoId = document.getElementById('fact-pedido-select').value;
+      const previewEl = document.getElementById('cuenta-preview');
+      const formContainer = document.getElementById('factura-form-container');
+
+      if (!pedidoId) {
+        previewEl.innerHTML = '';
+        formContainer.classList.add('hidden');
+        return;
+      }
+
+      try {
+        const data = await API.get('/facturacion/cuenta/' + pedidoId);
+        const cuenta = data.data || data.cuenta || data;
+        const items = cuenta.items || cuenta.detalles || [];
+        const cuentas = cuenta.cuentas || null;
+
+        let html = '<div class="preview-box"><h4>Preview de Cuenta - Pedido #' + pedidoId + '</h4>';
+
+        if (cuentas && Object.keys(cuentas).length > 1) {
+          // Multiple cuentas (divided)
+          for (const [numCuenta, cuentaInfo] of Object.entries(cuentas)) {
+            const cuentaItems = Array.isArray(cuentaInfo) ? cuentaInfo : (cuentaInfo.items || []);
+            html += `<div class="cuenta-group"><h4>Cuenta #${numCuenta}</h4>`;
+            cuentaItems.forEach(item => {
+              html += `<div class="preview-line"><span>${item.plato_nombre || item.nombre} x${item.cantidad}</span><span>${formatMoney((item.precio_unitario || item.precio) * item.cantidad)}</span></div>`;
+            });
+            const subtotalCuenta = cuentaItems.reduce((acc, i) => acc + ((i.precio_unitario || i.precio) * i.cantidad), 0);
+            html += `<div class="preview-line total"><span>Subtotal cuenta:</span><span>${formatMoney(subtotalCuenta)}</span></div>`;
+            html += '</div>';
+          }
+        } else {
+          // Single cuenta
+          items.forEach(item => {
+            html += `<div class="preview-line"><span>${item.plato_nombre || item.nombre} x${item.cantidad}</span><span>${formatMoney((item.precio_unitario || item.precio) * item.cantidad)}</span></div>`;
+          });
+        }
+
+        html += `
+          <div class="preview-line" style="margin-top: 12px; border-top: 1px solid var(--gray-200); padding-top: 8px;"><span>Subtotal:</span><span>${formatMoney(cuenta.subtotal || 0)}</span></div>
+          <div class="preview-line"><span>Impuesto:</span><span>${formatMoney(cuenta.impuesto || 0)}</span></div>
+          <div class="preview-line total"><span>Total:</span><span>${formatMoney(cuenta.total || 0)}</span></div>
+        `;
+        html += '</div>';
+
+        previewEl.innerHTML = html;
+        formContainer.classList.remove('hidden');
+
+      } catch (e) {
+        previewEl.innerHTML = '<p class="text-danger">Error cargando cuenta: ' + e.message + '</p>';
+        formContainer.classList.add('hidden');
+      }
+    }
+
+    function toggleMetodoPagoFields() {
+      const metodo = document.getElementById('fact-metodo-pago').value;
+      const fgEfectivo = document.getElementById('fg-monto-efectivo');
+      const fgTarjeta = document.getElementById('fg-monto-tarjeta');
+
+      fgEfectivo.classList.toggle('hidden', metodo === 'tarjeta');
+      fgTarjeta.classList.toggle('hidden', metodo === 'efectivo');
+    }
+
+    async function generarFactura(e) {
+      e.preventDefault();
+      const pedidoId = document.getElementById('fact-pedido-select').value;
+      if (!pedidoId) {
+        Toast.error('Seleccione un pedido');
+        return;
+      }
+
+      const metodo = document.getElementById('fact-metodo-pago').value;
+      const body = {
+        pedido_id: parseInt(pedidoId),
+        metodo_pago: metodo,
+        propina: parseFloat(document.getElementById('fact-propina').value) || 0,
+        num_comensales_division: parseInt(document.getElementById('fact-comensales').value) || 1,
+        cliente_nit: document.getElementById('fact-nit').value.trim() || null,
+        cliente_razon_social: document.getElementById('fact-razon').value.trim() || null
+      };
+
+      if (metodo === 'efectivo' || metodo === 'mixto') {
+        body.monto_efectivo = parseFloat(document.getElementById('fact-monto-efectivo').value) || 0;
+      }
+      if (metodo === 'tarjeta' || metodo === 'mixto') {
+        body.monto_tarjeta = parseFloat(document.getElementById('fact-monto-tarjeta').value) || 0;
+      }
+
+      try {
+        await API.post('/facturacion/generar', body);
+        Toast.success('Factura generada exitosamente');
+        document.getElementById('form-generar-factura').reset();
+        document.getElementById('cuenta-preview').innerHTML = '';
+        document.getElementById('factura-form-container').classList.add('hidden');
+        document.getElementById('fact-pedido-select').value = '';
+        loadFacturas();
+        loadFacturacionPedidos();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    async function loadFacturas() {
+      try {
+        const data = await API.get('/facturacion');
+        const facturas = data.data || data.facturas || data || [];
+        const tbody = document.getElementById('facturas-tbody');
+
+        if (facturas.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray">No hay facturas</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = facturas.map(f => `
+          <tr>
+            <td>#${f.id}</td>
+            <td>#${f.pedido_id}</td>
+            <td>${formatMoney(f.total)}</td>
+            <td>${f.metodo_pago}</td>
+            <td>${estadoBadge(f.estado)}</td>
+            <td>${formatDateTime(f.created_at || f.fecha)}</td>
+            <td>
+              <button class="btn btn-info btn-sm" onclick="showFacturaDetalle(${f.id})">Ver</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        Toast.error('Error cargando facturas: ' + e.message);
+      }
+    }
+
+    async function showFacturaDetalle(facturaId) {
+      try {
+        const data = await API.get('/facturacion/' + facturaId);
+        const factura = data.data || data.factura || data;
+
+        document.getElementById('factura-detalle-title').textContent = 'Factura #' + facturaId;
+
+        const body = document.getElementById('factura-detalle-body');
+        const items = factura.items || factura.detalles || [];
+
+        body.innerHTML = `
+          <div class="preview-box">
+            <div class="preview-line"><span>Pedido:</span><span>#${factura.pedido_id}</span></div>
+            <div class="preview-line"><span>Estado:</span><span>${estadoBadge(factura.estado)}</span></div>
+            <div class="preview-line"><span>Metodo de pago:</span><span>${factura.metodo_pago}</span></div>
+            ${factura.monto_efectivo ? `<div class="preview-line"><span>Monto efectivo:</span><span>${formatMoney(factura.monto_efectivo)}</span></div>` : ''}
+            ${factura.monto_tarjeta ? `<div class="preview-line"><span>Monto tarjeta:</span><span>${formatMoney(factura.monto_tarjeta)}</span></div>` : ''}
+            <div class="preview-line"><span>Propina:</span><span>${formatMoney(factura.propina || 0)}</span></div>
+            ${factura.cliente_nit ? `<div class="preview-line"><span>NIT:</span><span>${factura.cliente_nit}</span></div>` : ''}
+            ${factura.cliente_razon_social ? `<div class="preview-line"><span>Razon social:</span><span>${factura.cliente_razon_social}</span></div>` : ''}
+            <div class="preview-line"><span>Fecha:</span><span>${formatDateTime(factura.created_at || factura.fecha)}</span></div>
+          </div>
+          ${items.length > 0 ? `
+            <h4 class="mb-2">Items</h4>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr><th>Plato</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>
+                </thead>
+                <tbody>
+                  ${items.map(i => `
+                    <tr>
+                      <td>${i.plato_nombre || i.nombre || '-'}</td>
+                      <td>${i.cantidad}</td>
+                      <td>${formatMoney(i.precio_unitario || i.precio || 0)}</td>
+                      <td>${formatMoney((i.precio_unitario || i.precio || 0) * i.cantidad)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : ''}
+          <div class="preview-box mt-4">
+            <div class="preview-line"><span>Subtotal:</span><span>${formatMoney(factura.subtotal || 0)}</span></div>
+            <div class="preview-line"><span>Impuesto:</span><span>${formatMoney(factura.impuesto || 0)}</span></div>
+            <div class="preview-line total"><span>Total:</span><span>${formatMoney(factura.total || 0)}</span></div>
+          </div>
+        `;
+
+        openModal('modal-factura-detalle');
+      } catch (e) {
+        Toast.error('Error cargando factura: ' + e.message);
+      }
+    }
+
+    // ============================================================
+    // DESPACHOS
+    // ============================================================
+    async function loadDespachos() {
+      try {
+        const data = await API.get('/despachos');
+        const despachos = data.data || data.despachos || data || [];
+        const tbody = document.getElementById('despachos-tbody');
+
+        if (despachos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray">No hay despachos</td></tr>';
+          loadDespachoPedidos();
+          return;
+        }
+
+        tbody.innerHTML = despachos.map(d => `
+          <tr>
+            <td>#${d.id}</td>
+            <td>#${d.pedido_id}</td>
+            <td>Mesa ${d.mesa_numero || d.mesa_id || '-'}</td>
+            <td>${estadoBadge(d.estado)}</td>
+            <td>${formatDateTime(d.created_at || d.fecha)}</td>
+            <td>
+              <div class="flex gap-2 flex-wrap">
+                ${d.estado === 'pendiente' ? `<button class="btn btn-warning btn-sm" onclick="cambiarEstadoDespacho(${d.id}, 'en_ruta')">Tomar</button>` : ''}
+                ${d.estado === 'en_ruta' ? `<button class="btn btn-success btn-sm" onclick="cambiarEstadoDespacho(${d.id}, 'entregado')">Entregar</button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+
+        // Also load pedidos for despacho modal
+        loadDespachoPedidos();
+      } catch (e) {
+        Toast.error('Error cargando despachos: ' + e.message);
+      }
+    }
+
+    async function loadDespachoPedidos() {
+      try {
+        const data = await API.get('/pedidos');
+        const pedidos = data.data || data.pedidos || data || [];
+        const select = document.getElementById('desp-pedido');
+        select.innerHTML = '<option value="">-- Seleccione pedido --</option>' +
+          pedidos.filter(p => p.estado === 'listo')
+            .map(p => `<option value="${p.id}">Pedido #${p.id} - Mesa ${p.mesa_numero || p.mesa_id} (${p.estado})</option>`).join('');
+      } catch (e) {
+        console.error('Error cargando pedidos para despacho:', e);
+      }
+    }
+
+    async function crearDespacho(e) {
+      e.preventDefault();
+      const pedidoId = document.getElementById('desp-pedido').value;
+      if (!pedidoId) {
+        Toast.error('Seleccione un pedido');
+        return;
+      }
+
+      try {
+        await API.post('/despachos', { pedido_id: parseInt(pedidoId) });
+        Toast.success('Despacho creado exitosamente');
+        closeModal('modal-nuevo-despacho');
+        loadDespachos();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    async function openModalNuevoDespacho() {
+      await loadDespachoPedidos();
+      openModal('modal-nuevo-despacho');
+    }
+
+    async function cambiarEstadoDespacho(id, estado) {
+      try {
+        await API.put('/despachos/' + id + '/estado', { estado });
+        Toast.success(estado === 'en_ruta' ? 'Despacho en ruta' : 'Pedido entregado');
+        loadDespachos();
+        loadPedidos();
+        if (currentSection === 'facturacion') loadFacturacionPedidos();
+      } catch (e) {
+        Toast.error('Error: ' + e.message);
+      }
+    }
+
+    function escapeAttr(value) {
+      return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
+    }
+  </script>
+</body>
+</html>

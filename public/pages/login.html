@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesion - Restaurant</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-brand">R</div>
+      <h1>Restaurant</h1>
+      <p class="subtitle">Gestiona reservas, mesas, cocina y despachos desde un solo lugar.</p>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Usuario</label>
+          <input type="text" id="username" placeholder="Ingrese su usuario" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="password">Contrasena</label>
+          <input type="password" id="password" placeholder="Ingrese su contrasena" required>
+        </div>
+        <div id="errorMsg" class="error-msg"></div>
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:16px" id="btnLogin">
+          Iniciar Sesion
+        </button>
+      </form>
+
+      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--gray-200);">
+        <p class="text-sm text-gray text-center" style="margin-bottom:10px;">Acceso rapido de prueba</p>
+        <div class="quick-login-grid">
+          <button type="button" class="quick-login-btn" onclick="fillDemo('admin', 'admin123')"><strong>Admin</strong><span>Control total</span></button>
+          <button type="button" class="quick-login-btn" onclick="fillDemo('mesero', 'mesero123')"><strong>Mesero</strong><span>Mesas y pedidos</span></button>
+          <button type="button" class="quick-login-btn" onclick="fillDemo('cocina', 'cocina123')"><strong>Cocina</strong><span>Preparacion</span></button>
+          <button type="button" class="quick-login-btn" onclick="fillDemo('despacho', 'despacho123')"><strong>Despacho</strong><span>Entregas</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    // Si ya esta logueado, redirigir
+    const user = API.getUser();
+    if (user && API.getToken()) {
+      API.redirectByRole(user);
+    }
+
+    function fillDemo(username, password) {
+      document.getElementById('username').value = username;
+      document.getElementById('password').value = password;
+      document.getElementById('btnLogin').focus();
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById('errorMsg');
+      const btn = document.getElementById('btnLogin');
+      errorEl.classList.remove('show');
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        errorEl.textContent = 'Complete todos los campos';
+        errorEl.classList.add('show');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Ingresando...';
+
+      try {
+        const data = await API.login(username, password);
+        if (data.ok) {
+          API.redirectByRole(data.user);
+        }
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Iniciar Sesion';
+      }
+    });
+  </script>
+</body>
+</html>

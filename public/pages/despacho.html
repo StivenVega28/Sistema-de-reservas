@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Despacho - Restaurant</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- ====== SIDEBAR ====== -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Despacho</h2>
+        <div class="user-info" id="userName">Cargando...</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="active" data-section="despachos-activos">
+          <span class="nav-icon">&#128666;</span> Despachos Activos
+        </a>
+        <a href="#" data-section="crear-despacho">
+          <span class="nav-icon">&#10133;</span> Crear Despacho
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="API.logout()">Cerrar Sesion</button>
+      </div>
+    </aside>
+
+    <!-- ====== MAIN CONTENT ====== -->
+    <main class="main-content">
+      <div class="topbar">
+        <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+        <h1>Panel de Despacho</h1>
+        <div></div>
+      </div>
+
+      <div class="content-area">
+
+        <div class="help-card"><div class="help-icon">!</div><div><strong>Flujo de despacho</strong><span>Toma los despachos pendientes, marcalos en ruta y luego entregados cuando lleguen a la mesa.</span></div></div>
+
+        <!-- ====== SECCION: DESPACHOS ACTIVOS ====== -->
+        <section id="section-despachos-activos">
+
+          <!-- Stats -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon orange">&#128230;</div>
+              <div class="stat-info">
+                <h3 id="statPendientes">0</h3>
+                <p>Pendientes</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon blue">&#128666;</div>
+              <div class="stat-info">
+                <h3 id="statEnRuta">0</h3>
+                <p>En Ruta</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon green">&#9989;</div>
+              <div class="stat-info">
+                <h3 id="statEntregados">0</h3>
+                <p>Entregados Hoy</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Listado de Despachos</h2>
+              <button class="btn btn-outline btn-sm" onclick="loadDespachos()">&#128260; Refrescar</button>
+            </div>
+            <div class="panel-card-body">
+              <div class="filters-bar">
+                <button class="btn btn-sm btn-primary filter-btn active" data-filter="todos">Todos</button>
+                <button class="btn btn-sm btn-outline filter-btn" data-filter="pendiente">Pendiente</button>
+                <button class="btn btn-sm btn-outline filter-btn" data-filter="en_ruta">En Ruta</button>
+                <button class="btn btn-sm btn-outline filter-btn" data-filter="entregado">Entregado</button>
+              </div>
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Pedido #</th>
+                      <th>Mesa</th>
+                      <th>Despachador</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="despachosTableBody">
+                    <tr>
+                      <td colspan="7" class="text-center text-gray">
+                        <div class="page-loader"><div class="loader"></div> Cargando despachos...</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== SECCION: CREAR DESPACHO ====== -->
+        <section id="section-crear-despacho" class="hidden">
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h2>Pedidos Listos para Despachar</h2>
+              <button class="btn btn-outline btn-sm" onclick="loadPedidosListos()">&#128260; Refrescar</button>
+            </div>
+            <div class="panel-card-body">
+              <p class="text-sm text-gray mb-4">Seleccione un pedido listo para crear un nuevo despacho.</p>
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Pedido #</th>
+                      <th>Mesa</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pedidosListosTableBody">
+                    <tr>
+                      <td colspan="5" class="text-center text-gray">
+                        <div class="page-loader"><div class="loader"></div> Cargando pedidos...</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ====== MODAL: Confirmar Despacho ====== -->
+  <div class="modal-overlay" id="modalConfirmDespacho">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Confirmar Nuevo Despacho</h3>
+        <button class="modal-close" onclick="closeModal('modalConfirmDespacho')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Se creara un despacho para el pedido <strong id="confirmPedidoId"></strong>.</p>
+        <p class="text-sm text-gray mt-2">El despacho se creara con estado "pendiente".</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('modalConfirmDespacho')">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmDespacho">Crear Despacho</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    // ============================================================
+    // AUTH CHECK
+    // ============================================================
+    const currentUser = API.checkAuth(['despachador', 'administrador']);
+    if (!currentUser) throw new Error('No autorizado');
+
+    document.getElementById('userName').textContent = currentUser.nombre || currentUser.username;
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let allDespachos = [];
+    let currentFilter = 'todos';
+    let refreshInterval = null;
+    let pendingPedidoId = null;
+
+    // ============================================================
+    // NAVIGATION
+    // ============================================================
+    const navLinks = document.querySelectorAll('.sidebar-nav a[data-section]');
+    const sections = {
+      'despachos-activos': document.getElementById('section-despachos-activos'),
+      'crear-despacho': document.getElementById('section-crear-despacho')
+    };
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const sectionId = link.dataset.section;
+
+        // Update active nav
+        navLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+
+        // Show/hide sections
+        Object.values(sections).forEach(s => s.classList.add('hidden'));
+        sections[sectionId].classList.remove('hidden');
+
+        // Close sidebar on mobile
+        document.querySelector('.sidebar').classList.remove('open');
+
+        // Load data for the section
+        if (sectionId === 'despachos-activos') {
+          loadDespachos();
+        } else if (sectionId === 'crear-despacho') {
+          loadPedidosListos();
+        }
+      });
+    });
+
+    // ============================================================
+    // FILTER BUTTONS
+    // ============================================================
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => {
+          b.classList.remove('btn-primary');
+          b.classList.add('btn-outline');
+        });
+        btn.classList.remove('btn-outline');
+        btn.classList.add('btn-primary');
+
+        currentFilter = btn.dataset.filter;
+        renderDespachos();
+      });
+    });
+
+    // ============================================================
+    // LOAD DESPACHOS
+    // ============================================================
+    async function loadDespachos() {
+      try {
+        const data = await API.get('/despachos');
+        allDespachos = Array.isArray(data) ? data : (data.despachos || data.data || []);
+        updateStats();
+        renderDespachos();
+      } catch (err) {
+        Toast.error('Error al cargar despachos: ' + err.message);
+        document.getElementById('despachosTableBody').innerHTML =
+          '<tr><td colspan="7" class="text-center text-danger">Error al cargar despachos</td></tr>';
+      }
+    }
+
+    // ============================================================
+    // UPDATE STATS
+    // ============================================================
+    function updateStats() {
+      const pendientes = allDespachos.filter(d => d.estado === 'pendiente').length;
+      const enRuta = allDespachos.filter(d => d.estado === 'en_ruta').length;
+
+      // Entregados hoy
+      const hoy = new Date().toISOString().split('T')[0];
+      const entregados = allDespachos.filter(d => {
+        if (d.estado !== 'entregado') return false;
+        const fecha = (d.updated_at || d.fecha || d.created_at || '').split('T')[0];
+        return fecha === hoy;
+      }).length;
+
+      document.getElementById('statPendientes').textContent = pendientes;
+      document.getElementById('statEnRuta').textContent = enRuta;
+      document.getElementById('statEntregados').textContent = entregados;
+    }
+
+    // ============================================================
+    // RENDER DESPACHOS TABLE
+    // ============================================================
+    function renderDespachos() {
+      const tbody = document.getElementById('despachosTableBody');
+      let filtered = allDespachos;
+
+      if (currentFilter !== 'todos') {
+        filtered = allDespachos.filter(d => d.estado === currentFilter);
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray">No hay despachos para mostrar</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(d => {
+        let acciones = '';
+        if (d.estado === 'pendiente') {
+          acciones = `<button class="btn btn-warning btn-sm" onclick="cambiarEstado(${d.id}, 'en_ruta')">&#128666; En Ruta</button>`;
+        } else if (d.estado === 'en_ruta') {
+          acciones = `<button class="btn btn-success btn-sm" onclick="cambiarEstado(${d.id}, 'entregado')">&#9989; Entregado</button>`;
+        } else {
+          acciones = '<span class="text-sm text-gray">---</span>';
+        }
+
+        const mesaText = d.mesa_numero || (d.mesa ? (d.mesa.numero || d.mesa_id || d.mesa) : (d.mesa_id || '---'));
+        const pedidoNum = d.pedido ? (d.pedido.id || d.pedido_id) : (d.pedido_id || '---');
+        const despachadorText = d.despachador
+          ? (d.despachador.nombre || d.despachador.username || d.despachador_id)
+          : (d.despachador_nombre || d.despachador_id || '---');
+        const fecha = d.created_at || d.fecha || '';
+
+        return `<tr>
+          <td><strong>#${d.id}</strong></td>
+          <td>${pedidoNum}</td>
+          <td>${mesaText}</td>
+          <td>${despachadorText}</td>
+          <td>${estadoBadge(d.estado)}</td>
+          <td>${fecha ? timeAgo(fecha) : '---'}</td>
+          <td>${acciones}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ============================================================
+    // CAMBIAR ESTADO DEL DESPACHO
+    // ============================================================
+    async function cambiarEstado(despachoId, nuevoEstado) {
+      const labelMap = { en_ruta: 'En Ruta', entregado: 'Entregado' };
+      const label = labelMap[nuevoEstado] || nuevoEstado;
+
+      if (!confirm(`Cambiar despacho #${despachoId} a "${label}"?`)) return;
+
+      try {
+        await API.put(`/despachos/${despachoId}/estado`, { estado: nuevoEstado });
+        Toast.success(`Despacho #${despachoId} marcado como "${label}"`);
+        await loadDespachos();
+        if (!sections['crear-despacho'].classList.contains('hidden')) await loadPedidosListos();
+      } catch (err) {
+        Toast.error('Error al cambiar estado: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // LOAD PEDIDOS LISTOS
+    // ============================================================
+    async function loadPedidosListos() {
+      const tbody = document.getElementById('pedidosListosTableBody');
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray"><div class="page-loader"><div class="loader"></div> Cargando pedidos...</div></td></tr>';
+
+      try {
+        const data = await API.get('/pedidos?estado=listo');
+        const pedidos = Array.isArray(data) ? data : (data.pedidos || data.data || []);
+
+        if (pedidos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray">No hay pedidos listos para despachar</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = pedidos.map(p => {
+          const mesaText = p.mesa_numero || (p.mesa ? (p.mesa.numero || p.mesa_id || p.mesa) : (p.mesa_id || '---'));
+          const fecha = p.created_at || p.fecha || '';
+
+          return `<tr>
+            <td><strong>#${p.id}</strong></td>
+            <td>${mesaText}</td>
+            <td>${estadoBadge(p.estado)}</td>
+            <td>${fecha ? timeAgo(fecha) : '---'}</td>
+            <td>
+              <button class="btn btn-primary btn-sm" onclick="confirmarCrearDespacho(${p.id})">
+                &#128666; Despachar
+              </button>
+            </td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        Toast.error('Error al cargar pedidos: ' + err.message);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error al cargar pedidos</td></tr>';
+      }
+    }
+
+    // ============================================================
+    // CREAR DESPACHO
+    // ============================================================
+    function confirmarCrearDespacho(pedidoId) {
+      pendingPedidoId = pedidoId;
+      document.getElementById('confirmPedidoId').textContent = '#' + pedidoId;
+      openModal('modalConfirmDespacho');
+    }
+
+    document.getElementById('btnConfirmDespacho').addEventListener('click', async () => {
+      if (!pendingPedidoId) return;
+
+      const btn = document.getElementById('btnConfirmDespacho');
+      btn.disabled = true;
+      btn.textContent = 'Creando...';
+
+      try {
+        await API.post('/despachos', { pedido_id: pendingPedidoId });
+        Toast.success(`Despacho creado para pedido #${pendingPedidoId}`);
+        closeModal('modalConfirmDespacho');
+        pendingPedidoId = null;
+        await loadPedidosListos();
+      } catch (err) {
+        Toast.error('Error al crear despacho: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Crear Despacho';
+      }
+    });
+
+    // ============================================================
+    // AUTO-REFRESH (15 seconds)
+    // ============================================================
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      refreshInterval = setInterval(() => {
+        // Only auto-refresh the visible section
+        if (!sections['despachos-activos'].classList.contains('hidden')) {
+          loadDespachos();
+        } else if (!sections['crear-despacho'].classList.contains('hidden')) {
+          loadPedidosListos();
+        }
+      }, 15000);
+    }
+
+    function stopAutoRefresh() {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    }
+
+    // Pause refresh when tab is not visible
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopAutoRefresh();
+      } else {
+        startAutoRefresh();
+      }
+    });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    loadDespachos();
+    startAutoRefresh();
+  </script>
+</body>
+</html>

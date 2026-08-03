@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Cocina - Restaurant</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .cocina-filter-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .cocina-filter-tabs .filter-btn {
+      padding: 8px 20px;
+      border: 2px solid var(--gray-300);
+      background: white;
+      border-radius: 24px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      transition: all 0.2s;
+    }
+    .cocina-filter-tabs .filter-btn:hover {
+      border-color: var(--primary-light);
+      color: var(--primary);
+    }
+    .cocina-filter-tabs .filter-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .cocina-filter-tabs .filter-btn .count {
+      display: inline-block;
+      background: rgba(255,255,255,0.25);
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      margin-left: 4px;
+    }
+    .cocina-filter-tabs .filter-btn.active .count {
+      background: rgba(255,255,255,0.3);
+    }
+    .cocina-item .cantidad {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .cocina-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray-400);
+    }
+    .cocina-empty .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+    .auto-refresh-indicator {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .auto-refresh-indicator .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Cocina</h2>
+        <div class="user-info" id="sidebarUser">-</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="active">
+          <span class="nav-icon">&#9881;</span>
+          Cola de Platos
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="API.logout()">Cerrar Sesion</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+        <h1>Panel de Cocina</h1>
+        <div class="auto-refresh-indicator">
+          <span class="dot"></span>
+          Auto-refresh 15s
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <div class="content-area">
+
+        <div class="help-card"><div class="help-icon">!</div><div><strong>Flujo de cocina</strong><span>Marca cada plato como En preparacion y luego Listo para entregar. Cuando todo el pedido este listo, despacho podra llevarlo a la mesa.</span></div></div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsBar">
+          <div class="stat-card">
+            <div class="stat-icon orange">&#9201;</div>
+            <div class="stat-info">
+              <h3 id="countPendientes">0</h3>
+              <p>Pendientes</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">&#9832;</div>
+            <div class="stat-info">
+              <h3 id="countPreparacion">0</h3>
+              <p>En Preparacion</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="cocina-filter-tabs" id="filterTabs">
+          <button class="filter-btn active" data-filter="todos">
+            Todos <span class="count" id="countTodos">0</span>
+          </button>
+          <button class="filter-btn" data-filter="pendiente">
+            Pendientes <span class="count" id="countPendientesTab">0</span>
+          </button>
+          <button class="filter-btn" data-filter="en_preparacion">
+            En Preparacion <span class="count" id="countPreparacionTab">0</span>
+          </button>
+        </div>
+
+        <!-- Grid de items -->
+        <div class="cocina-grid" id="cocinaGrid">
+          <div class="page-loader">
+            <div class="loader"></div>
+            Cargando cola de cocina...
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    // ============================================================
+    // Estado global
+    // ============================================================
+    let currentFilter = 'todos';
+    let colaItems = [];
+    let previousPendienteIds = new Set();
+    let refreshInterval = null;
+    let audioCtx = null;
+
+    // ============================================================
+    // Auth check
+    // ============================================================
+    const user = API.checkAuth(['cocina', 'administrador']);
+    if (!user) throw new Error('No autorizado');
+
+    document.getElementById('sidebarUser').textContent = user.nombre || user.username;
+
+    // ============================================================
+    // Sound notification (beep via AudioContext)
+    // ============================================================
+    function playBeep() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.value = 0.3;
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc.stop(audioCtx.currentTime + 0.5);
+      } catch (e) {
+        // AudioContext not available, silently ignore
+      }
+    }
+
+    // ============================================================
+    // Load cola de cocina
+    // ============================================================
+    async function loadCola() {
+      try {
+        const data = await API.get('/cocina/cola');
+        const items = Array.isArray(data) ? data : (data.data || data.items || data.cola || []);
+        colaItems = items;
+
+        // Check for new pendiente items
+        const currentPendienteIds = new Set(
+          items.filter(i => i.estado === 'pendiente').map(i => i.id || i.detalle_id || i._id)
+        );
+        if (previousPendienteIds.size > 0) {
+          let hasNew = false;
+          for (const id of currentPendienteIds) {
+            if (!previousPendienteIds.has(id)) {
+              hasNew = true;
+              break;
+            }
+          }
+          if (hasNew) {
+            playBeep();
+          }
+        }
+        previousPendienteIds = currentPendienteIds;
+
+        updateStats(items);
+        renderItems(items);
+      } catch (err) {
+        Toast.error('Error al cargar cola: ' + err.message);
+        document.getElementById('cocinaGrid').innerHTML =
+          '<div class="cocina-empty"><div class="empty-icon">&#9888;</div><p>Error al cargar los platos</p></div>';
+      }
+    }
+
+    // ============================================================
+    // Update stats
+    // ============================================================
+    function updateStats(items) {
+      const pendientes = items.filter(i => i.estado === 'pendiente').length;
+      const enPrep = items.filter(i => i.estado === 'en_preparacion').length;
+      const total = items.length;
+
+      document.getElementById('countPendientes').textContent = pendientes;
+      document.getElementById('countPreparacion').textContent = enPrep;
+      document.getElementById('countTodos').textContent = total;
+      document.getElementById('countPendientesTab').textContent = pendientes;
+      document.getElementById('countPreparacionTab').textContent = enPrep;
+    }
+
+    // ============================================================
+    // Render items with current filter
+    // ============================================================
+    function renderItems(items) {
+      const grid = document.getElementById('cocinaGrid');
+
+      let filtered = items;
+      if (currentFilter !== 'todos') {
+        filtered = items.filter(i => i.estado === currentFilter);
+      }
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="cocina-empty" style="grid-column: 1 / -1;">
+            <div class="empty-icon">&#10003;</div>
+            <p>${currentFilter === 'todos' ? 'No hay platos en cola' : 'No hay platos ' + currentFilter.replace(/_/g, ' ')}</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => {
+        const detalleId = item.detalle_id || item.id || item._id;
+        const nombre = item.plato_nombre || item.nombre || item.plato || 'Sin nombre';
+        const mesa = item.mesa_numero || item.mesa || '-';
+        const cantidad = item.cantidad || 1;
+        const notas = item.notas || item.nota || '';
+        const mods = item.modificadores || item.mods || [];
+        const estado = item.estado || 'pendiente';
+        const createdAt = item.created_at || item.createdAt || item.fecha || '';
+
+        let actionBtn = '';
+        if (estado === 'pendiente') {
+          actionBtn = `<button class="btn btn-warning btn-sm" onclick="cambiarEstado(${detalleId}, 'en_preparacion')">&#9654; Preparar</button>`;
+        } else if (estado === 'en_preparacion') {
+          actionBtn = `<button class="btn btn-success btn-sm" onclick="cambiarEstado(${detalleId}, 'listo')">&#10003; Listo para entregar</button>`;
+        }
+
+        const modsHtml = Array.isArray(mods) && mods.length > 0
+          ? `<div class="item-mods">${mods.map(m => {
+              const modText = typeof m === 'string' ? m : (m.nombre || m.name || m);
+              return `<span class="mod-tag">${modText}</span>`;
+            }).join('')}</div>`
+          : '';
+
+        const notasHtml = notas
+          ? `<div class="item-notas">${notas}</div>`
+          : '';
+
+        return `
+          <div class="cocina-item ${estado}">
+            <div class="item-header">
+              <div>
+                <div class="plato-nombre">${nombre}</div>
+                <div class="mesa-info">Mesa ${mesa}</div>
+              </div>
+              <div class="cantidad">x${cantidad}</div>
+            </div>
+            ${notasHtml}
+            ${modsHtml}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+              <div class="item-time">${createdAt ? timeAgo(createdAt) : ''}</div>
+              ${estadoBadge(estado)}
+            </div>
+            <div class="item-actions">
+              ${actionBtn}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ============================================================
+    // Change item estado
+    // ============================================================
+    async function cambiarEstado(detalleId, nuevoEstado) {
+      try {
+        await API.put(`/cocina/${detalleId}/estado`, { estado: nuevoEstado });
+        const label = nuevoEstado === 'en_preparacion' ? 'en preparacion' : 'listo';
+        Toast.success(`Plato marcado como ${label}`);
+        await loadCola();
+      } catch (err) {
+        Toast.error('Error: ' + err.message);
+      }
+    }
+
+    // ============================================================
+    // Filter tabs
+    // ============================================================
+    document.getElementById('filterTabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      renderItems(colaItems);
+    });
+
+    // ============================================================
+    // Init & auto-refresh
+    // ============================================================
+    loadCola();
+    refreshInterval = setInterval(loadCola, 15000);
+
+    // Pause auto-refresh when tab is hidden, resume when visible
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      } else {
+        loadCola();
+        refreshInterval = setInterval(loadCola, 15000);
+      }
+    });
+  </script>
+</body>
+</html>
